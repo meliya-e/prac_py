@@ -1,0 +1,4 @@
+d(True):0.5 e(True):2.0 f(True):4.5
+d < e=True, e < f=True, d < f=True
+d in e=True, e in f=True, d in f=True
+d & e=True, e & f=True, d & f=True

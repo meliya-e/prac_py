@@ -1,0 +1,7 @@
+d = Triangle((0, 0), (1, 0), (1, 1))
+e = Triangle((0, 0), (2, 0), (2, 2))
+f = Triangle((0, 0), (3, 0), (3, 3))
+print(*(f"{n}({bool(x)}):{round(abs(x), 3)}" for n, x in zip("def", (d, e, f))))
+print(f"{d < e=}, {e < f=}, {d < f=}")
+print(f"{d in e=}, {e in f=}, {d in f=}")
+print(f"{d & e=}, {e & f=}, {d & f=}")
