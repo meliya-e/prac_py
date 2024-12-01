@@ -1,0 +1,10 @@
+class C:
+  num = Num()
+print(C().num)
+c =  C()
+c.num = 2
+print(c.num)
+c.num = ""
+print(c.num)
+c.num = range(10)
+print(c.num)
