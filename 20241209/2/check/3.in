@@ -1,0 +1,5 @@
+  store 10 a
+  store 5 b
+  loop: sub a b a
+        ifge a b loop
+        out a

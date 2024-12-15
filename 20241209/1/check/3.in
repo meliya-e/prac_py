@@ -1,0 +1,21 @@
+class BankAccount(metaclass=dump):
+    def __init__(self, owner, balance=0):
+        self.owner = owner
+        self.balance = balance
+
+    def deposit(self, amount):
+        self.balance += amount
+        return self.balance
+
+    def withdraw(self, amount):
+        if self.balance >= amount:
+            self.balance -= amount
+            return self.balance
+        else:
+            return "Insufficient funds"
+
+
+account = BankAccount("Alice", 100)  # init вызывается
+print(account.deposit(50))  # deposit вызывается
+print(account.withdraw(30))  # withdraw вызывается
+print(account.withdraw(200))  # withdraw вызывается снова

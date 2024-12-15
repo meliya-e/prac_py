@@ -1,0 +1,4 @@
+  store 100 i
+  store 1 I
+  ifeq i I undefined_label
+  out e
