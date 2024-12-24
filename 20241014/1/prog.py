@@ -1,28 +1,22 @@
 from fractions import Fraction
+def is_solution(a):
 
-def eval_poly(ks, deg, x):
-    res = 0
-    for i in range(deg + 1):
-        res += ks[i] * (x**(deg - i))
-    return res
+    s = Fraction(a[0])
+    w = Fraction(a[1])
+    degree_A= int(a[2])
+    coeffs_A = list(map(Fraction, a[3:4 + degree_A]))
+    degree_B = int(a[4 + degree_A])
+    coeffs_B = list(map(Fraction, a[5 + degree_A:]))
 
-def fun(s, w, deg_A, *ks):
-    ks_A = ks[:deg_A + 1]
-    deg_B = ks[deg_A + 1]
-    ks_B = ks[deg_A + 2:]
+    A_s = 0
+    for i in range(degree_A + 1):
+        A_s += coeffs_A[i] * (s ** i)
+    B_s = 0
+    for i in range(degree_B + 1):
+        B_s += coeffs_B[i] * (s ** i)
 
-    s = Fraction(s)
-    w = Fraction(w)
-    ks_A = [Fraction(c) for c in ks_A]
-    ks_B = [Fraction(c) for c in ks_B]
+    return Fraction(A_s, B_s) == w if B_s else False
+    
+a = input().split(', ')
+print(is_solution(a))
 
-    A_s = eval_poly(ks_A, deg_A, s)
-    B_s = eval_poly(ks_B, deg_B, s)
-
-    if B_s == 0:
-        return False
-
-    return A_s * Fraction(1, B_s) == w
-
-import sys
-exec(sys.stdin.read())
