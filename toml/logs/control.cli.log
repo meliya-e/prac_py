@@ -1,0 +1,27 @@
+11:45:00 24.12.2024 [              deliver.git]: |   INFO|: Downloading (or updating) all repos and store them
+11:45:00 24.12.2024 [              deliver.git]: |   INFO|: Updating all repos
+11:45:08 24.12.2024 [                     make]: |   INFO|: Parse and store all homeworks...
+11:45:10 24.12.2024 [                     make]: |   INFO|: Run new checks on all solutions...
+11:45:31 24.12.2024 [            check.runtime]: |WARNING|: Waiting 1 seconds for /tmp/hworker_check/Ворошилова Ксения_20241216_1.py to die
+11:45:36 24.12.2024 [            check.runtime]: |WARNING|: Waiting 1 seconds for /tmp/hworker_check/Ворошилова Ксения_20241216_1.py to die
+11:45:41 24.12.2024 [            check.runtime]: |WARNING|: Waiting 1 seconds for /tmp/hworker_check/Ворошилова Ксения_20241216_1.py to die
+11:45:47 24.12.2024 [            check.runtime]: |WARNING|: Waiting 1 seconds for /tmp/hworker_check/Ворошилова Ксения_20241216_1.py to die
+11:45:52 24.12.2024 [            check.runtime]: |WARNING|: Waiting 1 seconds for /tmp/hworker_check/Ворошилова Ксения_20241216_1.py to die
+11:45:57 24.12.2024 [            check.runtime]: |WARNING|: Waiting 1 seconds for /tmp/hworker_check/Ворошилова Ксения_20241216_1.py to die
+11:46:12 24.12.2024 [            check.runtime]: |WARNING|: Waiting 1 seconds for /tmp/hworker_check/Ереджепова Мелия_20241216_1.py to die
+11:46:17 24.12.2024 [            check.runtime]: |WARNING|: Waiting 1 seconds for /tmp/hworker_check/Ереджепова Мелия_20241216_1.py to die
+11:46:22 24.12.2024 [            check.runtime]: |WARNING|: Waiting 1 seconds for /tmp/hworker_check/Ереджепова Мелия_20241216_1.py to die
+11:46:24 24.12.2024 [                    score]: |WARNING|: Empty task_qualifier file
+11:46:24 24.12.2024 [                    score]: |WARNING|: Empty user_qualifier file
+11:46:24 24.12.2024 [                    score]: |WARNING|: Empty formula file
+11:46:24 24.12.2024 [                    score]: |   INFO|: Importing user functions...
+11:46:24 24.12.2024 [                    score]: |   INFO|: Performing all imported qualifiers...
+11:50:56 24.12.2024 [              deliver.git]: |   INFO|: Downloading (or updating) all repos and store them
+11:50:56 24.12.2024 [              deliver.git]: |   INFO|: Updating all repos
+11:51:03 24.12.2024 [                     make]: |   INFO|: Parse and store all homeworks...
+11:51:04 24.12.2024 [                     make]: |   INFO|: Run new checks on all solutions...
+11:51:18 24.12.2024 [            check.runtime]: |WARNING|: Waiting 1 seconds for /tmp/hworker_check/Ворошилова Ксения_20241216_1.py to die
+11:51:23 24.12.2024 [            check.runtime]: |WARNING|: Waiting 1 seconds for /tmp/hworker_check/Ворошилова Ксения_20241216_1.py to die
+11:51:28 24.12.2024 [            check.runtime]: |WARNING|: Waiting 1 seconds for /tmp/hworker_check/Ворошилова Ксения_20241216_1.py to die
+11:51:30 24.12.2024 [                    score]: |   INFO|: Importing user functions...
+11:51:30 24.12.2024 [                    score]: |   INFO|: Performing all imported qualifiers...
