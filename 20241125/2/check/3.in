@@ -1,8 +1,0 @@
-class C:
-  num = Num()
-c = C()
-c.num = 65
-c.num = 3.3+1j
-print(c.num)
-c.num = C() 
-print(c.num)

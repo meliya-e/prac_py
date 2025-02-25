@@ -1,7 +1,0 @@
-__init__: ('Alice', 100), {}
-deposit: (50,), {}
-150
-withdraw: (30,), {}
-120
-withdraw: (200,), {}
-Insufficient funds

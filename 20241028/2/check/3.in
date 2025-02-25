@@ -1,1 +1,0 @@
-print(*list(slide(range(15), 2)))
