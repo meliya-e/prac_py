@@ -24,17 +24,20 @@ class MUD:
         print(f"Moved to ({x}, {y})")
         self.encounter(x, y)
 
-    def add_monster(self, x, y, hello):
-    if (x, y) == self.player_position:
-        print("Cannot add monster to player's position")
-        return
+    def add_monster(self, name, x, y, hello):
+        if name not in cowsay.list_cows():
+            print("cannot add unknown monster")
+            return
+        if (x, y) == self.player_position:
+            print("cannot add monster to player's position")
+            return
 
-    old_monster_exists = self.field[x][y] is not None
-    self.field[x][y] = hello
-    print(f"Added monster to ({x}, {y}) saying {hello}")
+        old_mon = self.field[x][y] is not None
+        self.field[x][y] = (name, hello)
+        print(f"Added monster {name} to ({x}, {y}) saying {hello}")
 
-    if old_monster_exists:
-        print("Replaced the old monster")
+        if old_mon:
+            print("Replaced the old monster")
 
     def encounter(self, x, y):
         if self.field[x][y] is not None:
@@ -48,11 +51,12 @@ class MUD:
 
         if parts[0] in ['up', 'down', 'left', 'right']:
             self.move_player(parts[0])
-        elif parts[0] == 'addmon' and len(parts) == 4:
+        elif parts[0] == 'addmon' and len(parts) == 5:
             try:
-                x, y = int(parts[1]), int(parts[2])
-                hello = parts[3]
-                self.add_monster(x, y, hello)
+                name = parts[1]
+                x, y = int(parts[2]), int(parts[3])
+                hello = parts[4]
+                self.add_monster(name, x, y, hello)
             except ValueError:
                 print("Invalid arguments")
         else:
