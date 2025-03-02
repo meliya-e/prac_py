@@ -40,8 +40,10 @@ class MUD:
             print("Replaced the old monster")
 
     def encounter(self, x, y):
-        if self.field[x][y] is not None:
-            print(cowsay.cow(self.field[x][y]))
+        monster = self.field[x][y]
+        if monster is not None:
+            name, hello = monster
+            print(cowsay.cow(hello, cow=name))
 
     def process_cmd(self, command):
         parts = command.split()
