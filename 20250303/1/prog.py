@@ -1,4 +1,5 @@
 import sys
+import shlex
 import cowsay
 
 class MUD:
@@ -58,7 +59,7 @@ class MUD:
                 print(cowsay.cowsay(hello, cow=name))
 
     def process_cmd(self, command):
-        parts = command.split()
+        parts = shlex.split(command)
         if not parts:
             print("Invalid command")
             return
