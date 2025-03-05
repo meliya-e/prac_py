@@ -5,6 +5,8 @@ class MUD:
     def __init__(self):
         self.field = [[None for _ in range(10)] for _ in range(10)]
         self.player_position = (0, 0)
+        print("<<< Welcome to Python-MUD 0.1 >>>")
+
         self.jgsbat_func = None
         try:
             with open("jgsbat.cow", "r", encoding="utf-8") as f:
