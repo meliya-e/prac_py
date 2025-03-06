@@ -52,16 +52,11 @@ class MUD:
     def encounter(self, x, y):
         monster = self.field[x][y]
         if monster is not None:
-<<<<<<< HEAD
-            name, hello = monster
+            name, hello, _ = monster
             if name == "jgsbat" and self.jgsbat_func:
                 print(self.jgsbat_func(hello))  
             else:
                 print(cowsay.cowsay(hello, cow=name))
-=======
-            name, hello, _ = monster
-            print(cowsay.cowsay(hello, cow=name))
->>>>>>> c2ec5e8 (реализована поддержка команды addmon с новым синтаксисом и произвольным порядком следования именованных параметров)
 
     def process_cmd(self, command):
         parts = shlex.split(command)
