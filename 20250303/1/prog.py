@@ -5,6 +5,13 @@ class MUD:
     def __init__(self):
         self.field = [[None for _ in range(10)] for _ in range(10)]
         self.player_position = (0, 0)
+        self.jgsbat_func = None
+        try:
+            with open("jgsbat.cow", "r", encoding="utf-8") as f:
+                jgsbat_template = cowsay.read_dot_cow(f) #шаблон ackii-арта
+                self.jgsbat_func = lambda msg: cowsay.cowsay(msg, cowfile=jgsbat_template)
+        except Exception as e:
+            print(f"Ошибка загрузки монстра jgsbat: {e}")
 
     def move_player(self, direction):
         x, y = self.player_position
@@ -25,7 +32,7 @@ class MUD:
         self.encounter(x, y)
 
     def add_monster(self, name, x, y, hello):
-        if name not in cowsay.list_cows():
+        if name not in cowsay.list_cows() and name != "jgsbat":
             print("cannot add unknown monster")
             return
         if (x, y) == self.player_position:
@@ -43,7 +50,10 @@ class MUD:
         monster = self.field[x][y]
         if monster is not None:
             name, hello = monster
-            print(cowsay.cowsay(hello, cow=name))
+            if name == "jgsbat" and self.jgsbat_func:
+                print(self.jgsbat_func(hello))  
+            else:
+                print(cowsay.cowsay(hello, cow=name))
 
     def process_cmd(self, command):
         parts = command.split()
@@ -63,7 +73,6 @@ class MUD:
                 print("Invalid arguments")
         else:
             print("Invalid command")
-
 
 game = MUD()
 if sys.stdin.isatty():
