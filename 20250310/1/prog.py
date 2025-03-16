@@ -57,23 +57,30 @@ class MUD(cmd.Cmd):
 
     def do_attack(self, arg):
         """Атаковать монстра в текущей позиции"""
+        #if not arg:
+            #print("Usage: attack <monster_name>")
+            #return
         x, y = self.player_position
         monster = self.field[x][y]
-
-        if not monster:
-            print("No monster here")
+        if not monster or monster[0] != arg:
+            print(f"No {arg} here")
             return
         name, hello, hp = monster
-        damage = min(10, hp)  #если у монстра меньше 10 hp, наносим оставшееся количество
+        damage = min(10, hp)
         hp -= damage
         print(f"Attacked {name}, damage {damage} hp")
 
         if hp <= 0:
             print(f"{name} died")
-            self.field[x][y] = None  #удаляем монстра
+            self.field[x][y] = None 
         else:
             print(f"{name} now has {hp} hp")
-            self.field[x][y] = (name, hello, hp)  #oбновляем здоровье монстра
+            self.field[x][y] = (name, hello, hp)
+
+    def complete_attack(self, text, line, begidx, endidx):
+        """Автодополнение attack по именам доступных монстров"""
+        monsters = cowsay.list_cows() + ["jgsbat"]
+        return [m for m in monsters if m.startswith(text)]
 
     def do_addmon(self, arg):
         """Добавляет монстра. Использование: addmon <name> hello <msg> hp <hp> coords <x> <y>"""
