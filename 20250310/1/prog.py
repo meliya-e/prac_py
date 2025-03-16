@@ -1,9 +1,14 @@
+import cmd
 import sys
 import shlex
 import cowsay
 
-class MUD:
+class MUD(cmd.Cmd):
+    prompt = ">"
+
     def __init__(self):
+        self.completekey = "tab"
+        self.cmdqueue = []
         self.field = [[None for _ in range(10)] for _ in range(10)]
         self.player_position = (0, 0)
         print("<<< Welcome to Python-MUD 0.1 >>>")
@@ -15,6 +20,18 @@ class MUD:
                 self.jgsbat_func = lambda msg: cowsay.cowsay(msg, cowfile=jgsbat_template)
         except Exception as e:
             print(f"Ошибка загрузки монстра jgsbat: {e}")
+
+    def do_up(self, arg):
+        """Двигает игрока вверх"""
+        self.move_player("up")
+
+    def do_down(self, arg):
+        """Двигает игрока вниз"""
+        self.move_player("down")
+
+    def do_left(self, arg):
+        """Двигает игрока влево"""
+        self.move_player("left")
 
     def move_player(self, direction):
         x, y = self.player_position
@@ -33,6 +50,37 @@ class MUD:
         self.player_position = (x, y)
         print(f"Moved to ({x}, {y})")
         self.encounter(x, y)
+
+    def do_addmon(self, arg):
+        """Добавляет монстра. Использование: addmon <name> hello <msg> hp <hp> coords <x> <y>"""
+        try:
+            parts = shlex.split(arg)
+            if len(parts) < 7:
+                raise ValueError("not enough arguments for addmon")
+
+            name = parts[0]
+            args = {}
+            key = None
+            for part in parts[1:]:
+                if part in ["hello", "hp", "coords"]:
+                    key = part
+                elif key is not None:
+                    args[key] = part if key not in args else args[key] + " " + part
+
+            if not all(k in args for k in ["hello", "hp", "coords"]):
+                raise ValueError("missing required arguments")
+
+            hello = args["hello"]
+            hp = int(args["hp"])
+            x, y = map(int, args["coords"].split())
+
+            if hp <= 0:
+                print("hitpoints must be positive")
+                return
+
+            self.add_monster(name, x, y, hello, hp)
+        except (ValueError, KeyError):
+            print("Invalid arguments")
 
     def add_monster(self, name, x, y, hello, hp):
         if name not in cowsay.list_cows() and name != "jgsbat":
@@ -102,12 +150,7 @@ class MUD:
         else:
             print("Invalid command")
 
-game = MUD()
-if sys.stdin.isatty():
-    while True:
-        #command = input("Enter command: ")
-        game.process_cmd(input())
-else:
-    for line in sys.stdin:
-        game.process_cmd(line.strip())
+if __name__ == "__main__":
+    game = MUD()
+    game.cmdloop()
 
