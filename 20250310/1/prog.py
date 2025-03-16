@@ -55,6 +55,26 @@ class MUD(cmd.Cmd):
         print(f"Moved to ({x}, {y})")
         self.encounter(x, y)
 
+    def do_attack(self, arg):
+        """Атаковать монстра в текущей позиции"""
+        x, y = self.player_position
+        monster = self.field[x][y]
+
+        if not monster:
+            print("No monster here")
+            return
+        name, hello, hp = monster
+        damage = min(10, hp)  #если у монстра меньше 10 hp, наносим оставшееся количество
+        hp -= damage
+        print(f"Attacked {name}, damage {damage} hp")
+
+        if hp <= 0:
+            print(f"{name} died")
+            self.field[x][y] = None  #удаляем монстра
+        else:
+            print(f"{name} now has {hp} hp")
+            self.field[x][y] = (name, hello, hp)  #oбновляем здоровье монстра
+
     def do_addmon(self, arg):
         """Добавляет монстра. Использование: addmon <name> hello <msg> hp <hp> coords <x> <y>"""
         try:
@@ -109,50 +129,6 @@ class MUD(cmd.Cmd):
                 print(self.jgsbat_func(hello))  
             else:
                 print(cowsay.cowsay(hello, cow=name))
-
-    def process_cmd(self, command):
-        parts = shlex.split(command)
-        if not parts:
-            print("Invalid command")
-            return
-
-        if parts[0] in ['up', 'down', 'left', 'right']:
-            self.move_player(parts[0])
-        elif parts[0] == 'addmon':
-            try:
-                if len(parts) < 9:  # min число аргументов
-                    raise ValueError("not enough arguments for addmon")
-
-                name = parts[1]  #1 после addmon - имя монстра
-                args = {}
-
-                key = None
-                for part in parts[2:]:  #пропускаем addmon и имя монстра
-                    if part in ["hello", "hp", "coords"]:
-                        key = part
-                    elif key is not None:
-                        if key in args:
-                            args[key] += " " + part
-                        else:
-                            args[key] = part
-               # print("Parsed args:", args)
-
-                if not all(k in args for k in ["hello", "hp", "coords"]):
-                    raise ValueError("missing required arguments")
-
-                hello = args["hello"]
-                hp = int(args["hp"])
-                x, y = map(int, args["coords"].split())
-
-                if hp <= 0:
-                    print("hitpoints must be positive")
-                    return
-
-                self.add_monster(name, x, y, hello, hp)
-            except (ValueError, KeyError):
-                print("Invalid arguments")
-        else:
-            print("Invalid command")
 
     def complete_addmon(self, text, line, begidx, endidx):
         """Автодополнение монстров в команде addmon"""
