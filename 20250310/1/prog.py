@@ -33,6 +33,10 @@ class MUD(cmd.Cmd):
         """Двигает игрока влево"""
         self.move_player("left")
 
+    def do_right(self, arg):
+        """Двигает игрока вправо"""
+        self.move_player("right")
+
     def move_player(self, direction):
         x, y = self.player_position
         if direction == 'up':
@@ -149,6 +153,11 @@ class MUD(cmd.Cmd):
                 print("Invalid arguments")
         else:
             print("Invalid command")
+
+    def complete_addmon(self, text, line, begidx, endidx):
+        """Автодополнение монстров в команде addmon"""
+        monsters = cowsay.list_cows() + ["jgsbat"]
+        return [m for m in monsters if m.startswith(text)]
 
 if __name__ == "__main__":
     game = MUD()
