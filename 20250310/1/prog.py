@@ -60,34 +60,43 @@ class MUD(cmd.Cmd):
         """Атаковать монстра в текущей позиции"""
         parts = arg.split()
         if len(parts) == 0:
-            weapon = "sword"  #по умолчанию меч
-        elif len(parts) == 2 and parts[0] == "with":
-            weapon = parts[1]
-        else:
-            print("Usage: attack with <weapon>")
+            print("attack name witn weapon")
             return
-        #корректность оружия
+        if len(parts) == 3 and parts[1] == "with":
+            monster_name, weapon = parts[0], parts[2]
+        elif len(parts) == 1:
+            monster_name, weapon = parts[0], "sword"
+        else:
+            print("Usage: attack <monster_name> with <weapon>")
+            return
         if weapon not in self.weapons:
             print("Unknown weapon")
             return
-        damage = self.weapons[weapon]
         x, y = self.player_position
         monster = self.field[x][y]
-
-        if not monster:
-            print("No monster here")
+        if not monster or monster[0] != monster_name:
+            print(f"No {monster_name} here")
             return
         name, hello, hp = monster
-        actual_damage = min(damage, hp)  #наносим не больше оставшихся HP
-        hp -= actual_damage
-        print(f"Attacked {name} with {weapon}, damage {actual_damage} hp")
-
+        damage = min(self.weapons[weapon], hp)
+        hp -= damage
+        print(f"Attacked {name} with {weapon}, damage {damage} hp")
         if hp <= 0:
             print(f"{name} died")
-            self.field[x][y] = None  #удаляем монстра
+            self.field[x][y] = None 
         else:
             print(f"{name} now has {hp} hp")
-            self.field[x][y] = (name, hello, hp)  #oбновляем здоровье монстра
+            self.field[x][y] = (name, hello, hp)
+
+    def complete_attack(self, text, line, begidx, endidx):
+        """Автодополнение attack по именам доступных монстров"""
+        parts = line.split()  
+        if len(parts) <= 2:
+            monsters = cowsay.list_cows() + ["jgsbat"]
+            return [m for m in monsters if m.startswith(text)]
+        elif len(parts) >= 3 and parts[-2] == "with":
+            return [w for w in self.weapons.keys() if w.startswith(text)]
+        return []
 
     def do_addmon(self, arg):
         """Добавляет монстра. Использование: addmon <name> hello <msg> hp <hp> coords <x> <y>"""
@@ -118,10 +127,6 @@ class MUD(cmd.Cmd):
             self.add_monster(name, x, y, hello, hp)
         except (ValueError, KeyError):
             print("Invalid arguments")
-
-    def complete_attack(self, text, line, begidx, endidx):
-        """Автодополнение для команды attack (оружие)"""
-        return [w for w in self.weapons.keys() if w.startswith(text)]
 
     def add_monster(self, name, x, y, hello, hp):
         if name not in cowsay.list_cows() and name != "jgsbat":
