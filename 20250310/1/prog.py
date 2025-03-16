@@ -5,6 +5,7 @@ import cowsay
 
 class MUD(cmd.Cmd):
     prompt = ">"
+    weapons = {"sword": 10, "spear": 15, "axe": 20}
 
     def __init__(self):
         self.completekey = "tab"
@@ -57,6 +58,19 @@ class MUD(cmd.Cmd):
 
     def do_attack(self, arg):
         """Атаковать монстра в текущей позиции"""
+        parts = arg.split()
+        if len(parts) == 0:
+            weapon = "sword"  #по умолчанию меч
+        elif len(parts) == 2 and parts[0] == "with":
+            weapon = parts[1]
+        else:
+            print("Usage: attack with <weapon>")
+            return
+        #корректность оружия
+        if weapon not in self.weapons:
+            print("Unknown weapon")
+            return
+        damage = self.weapons[weapon]
         x, y = self.player_position
         monster = self.field[x][y]
 
@@ -64,9 +78,9 @@ class MUD(cmd.Cmd):
             print("No monster here")
             return
         name, hello, hp = monster
-        damage = min(10, hp)  #если у монстра меньше 10 hp, наносим оставшееся количество
-        hp -= damage
-        print(f"Attacked {name}, damage {damage} hp")
+        actual_damage = min(damage, hp)  #наносим не больше оставшихся HP
+        hp -= actual_damage
+        print(f"Attacked {name} with {weapon}, damage {actual_damage} hp")
 
         if hp <= 0:
             print(f"{name} died")
@@ -90,7 +104,6 @@ class MUD(cmd.Cmd):
                     key = part
                 elif key is not None:
                     args[key] = part if key not in args else args[key] + " " + part
-
             if not all(k in args for k in ["hello", "hp", "coords"]):
                 raise ValueError("missing required arguments")
 
@@ -105,6 +118,10 @@ class MUD(cmd.Cmd):
             self.add_monster(name, x, y, hello, hp)
         except (ValueError, KeyError):
             print("Invalid arguments")
+
+    def complete_attack(self, text, line, begidx, endidx):
+        """Автодополнение для команды attack (оружие)"""
+        return [w for w in self.weapons.keys() if w.startswith(text)]
 
     def add_monster(self, name, x, y, hello, hp):
         if name not in cowsay.list_cows() and name != "jgsbat":
