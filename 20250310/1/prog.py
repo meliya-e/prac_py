@@ -159,6 +159,9 @@ class MUD(cmd.Cmd):
         monsters = cowsay.list_cows() + ["jgsbat"]
         return [m for m in monsters if m.startswith(text)]
 
+    def do_EOF():
+        return 1
+
 if __name__ == "__main__":
     game = MUD()
     game.cmdloop()
