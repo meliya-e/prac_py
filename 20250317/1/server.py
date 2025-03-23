@@ -31,6 +31,10 @@ class MUDServer:
 
     def handle_command(self, command):
         """Обрабатывает команду, полученную от клиента"""
+        if command == "list_monsters":
+            return " ".join(cowsay.list_cows() + ["jgsbat"])
+        if command == "list_weapons":
+            return " ".join(self.weapons.keys())
         parts = shlex.split(command)
         if not parts:
             return "Empty command"
