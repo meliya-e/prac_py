@@ -1,0 +1,104 @@
+From be6168b712108a33a1a28ec206263e6ef6fe8d8d Mon Sep 17 00:00:00 2001
+From: meliya-e <eredzepovamelya@gmail.com>
+Date: Sun, 23 Mar 2025 16:29:32 +0300
+Subject: [PATCH 2/3] =?UTF-8?q?=D0=B1=D0=B0=D0=B7=D0=BE=D0=B2=D1=8B=D0=B9?=
+ =?UTF-8?q?=20=D1=81=D0=B5=D1=80=D0=B2=D0=B5=D1=80?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ 20250317/1/client.py | 65 ++++++++++++++++++++++++++++++++++++++++++++
+ 20250317/1/server.py |  4 +++
+ 2 files changed, 69 insertions(+)
+ create mode 100644 20250317/1/client.py
+
+diff --git a/20250317/1/client.py b/20250317/1/client.py
+new file mode 100644
+index 0000000..e85bd12
+--- /dev/null
++++ b/20250317/1/client.py
+@@ -0,0 +1,65 @@
++import cmd
++import socket
++import readline
++import cowsay
++
++class MUDClient(cmd.Cmd):
++    prompt = "> "
++
++    def __init__(self, host="localhost", port=12345):
++        super().__init__()
++        self.host = host
++        self.port = port
++        self.monsters = []
++        self.weapons = ["sword", "spear", "axe"]
++        self.fetch_game_data()
++
++    def fetch_game_data(self):
++        """Запрашивает у сервера список монстров"""
++        try:
++            with socket.create_connection((self.host, self.port)) as sock:
++                sock.sendall(b"list_monsters")
++                self.monsters = sock.recv(4096).decode().split()
++        except Exception:
++            print("Не удалось загрузить список монстров")
++
++    def send_command(self, command):
++        """Отправляет команду на сервер и получает ответ"""
++        try:
++            with socket.create_connection((self.host, self.port)) as sock:
++                sock.sendall(command.encode())
++                return sock.recv(4096).decode().strip()
++        except Exception as e:
++            return f"Ошибка соединения: {e}"
++
++    def do_exit(self, arg):
++        """Выход из игры"""
++        print("Выход из игры")
++        return True
++
++    def do_EOF(self, arg):
++        """Выход (Ctrl+D)"""
++        return self.do_exit(arg)
++
++    def default(self, line):
++        """Отправляет любую неизвестную команду на сервер"""
++        response = self.send_command(line)
++        print(response)
++
++    def complete_attack(self, text, line, begidx, endidx):
++        """Автодополнение attack по именам доступных монстров"""
++        parts = line.split()
++        if len(parts) <= 2:
++            return [m for m in self.monsters if m.startswith(text)]
++        elif len(parts) >= 3 and parts[-2] == "with":
++            return [w for w in self.weapons if w.startswith(text)]
++        return []
++
++    def complete_addmon(self, text, line, begidx, endidx):
++        """Автодополнение addmon по доступным монстрам"""
++        return [m for m in self.monsters if m.startswith(text)]
++
++if __name__ == "__main__":
++    client = MUDClient()
++    client.cmdloop()
++
+diff --git a/20250317/1/server.py b/20250317/1/server.py
+index 8f9f88b..a44a13a 100644
+--- a/20250317/1/server.py
++++ b/20250317/1/server.py
+@@ -31,6 +31,10 @@ class MUDServer:
+ 
+     def handle_command(self, command):
+         """Обрабатывает команду, полученную от клиента"""
++        if command == "list_monsters":
++            return " ".join(cowsay.list_cows() + ["jgsbat"])
++        if command == "list_weapons":
++            return " ".join(self.weapons.keys())
+         parts = shlex.split(command)
+         if not parts:
+             return "Empty command"
+-- 
+2.43.0
+
