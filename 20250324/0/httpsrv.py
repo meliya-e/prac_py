@@ -10,33 +10,19 @@ def test(HandlerClass=SimpleHTTPRequestHandler,
     HandlerClass.protocol_version = protocol
     with ServerClass(addr, HandlerClass) as httpd:
         host, port = httpd.socket.getsockname()[:2]
-        hostinfo = socket.gethostbyname(socket.gethostbyname())
-        #url_host = f'[{host}]' if ':' in host else host
-        
-        # Получаем реальный IP вместо 0.0.0.0
-        #s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        #s.connect(("8.8.8.8", 80))
-        #real_ip = s.getsockname()[0]
-        #s.close()
-        
-        print(f"Serving HTTP on {real_ip} port {port} (http://{real_ip}:{port}/) ...")
+        hostinfo = socket.gethostbyname(socket.gethostname())
+        print(
+                f"Serving HTTP on {hostinfo} port {port} "
+                f"(http://{hostinfo}:{port}/) ..."
+        )
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
             print("\nKeyboard interrupt received, exiting.")
             sys.exit(0)
 
-#def _get_best_family(bind, port):
-  #  """Helper function for test()."""
-  #  family = socket.AF_INET
-  #  addr = (bind if bind is not None else '0.0.0.0', port)
-  #  return family, addr
 
 if __name__ == "__main__":
-    #import argparse
-    #parser = argparse.ArgumentParser()
-    #parser.add_argument("port", type=int, help="port number to listen on")
-    #args = parser.parse_args()
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
     test(port=port)
 
