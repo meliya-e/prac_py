@@ -2,18 +2,28 @@ import cmd
 import shlex
 import cowsay
 import socket
+import sys
 
 class Client_MUD(cmd.Cmd):
     prompt = 'MUD> '
     host = "localhost"
     port = 1337
 
-    def __init__(self):
+    def __init__(self, username):
         super().__init__()
+        self.username = username
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect((self.host, self.port))
+        
+        # Отправляем имя пользователя при подключении
+        self.s.sendall(f"{username}\n".encode())
+        response = self.s.recv(1024).decode().strip()
+        if response == "Username already taken":
+            print("This username is already taken")
+            sys.exit(1)
+        print(response)
+        
         self.monsters = set()
-        #self.weapons = {"sword": 10, "spear": 15, "axe": 20}
 
     def response_addmon(self, name, x, y, hello):
         response = self.s.recv(1024).rstrip().decode()
@@ -175,5 +185,9 @@ class Error(Exception):
                 self.text = "Unknown weapon"
 
 if __name__ == '__main__':
-    Client_MUD().cmdloop()
-
+    if len(sys.argv) < 2:
+        print("Usage: python client.py <username>")
+        sys.exit(1)
+        
+    username = sys.argv[1]
+    Client_MUD(username).cmdloop()

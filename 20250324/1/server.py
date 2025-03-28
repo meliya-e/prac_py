@@ -2,11 +2,15 @@ import asyncio
 import cowsay
 import shlex
 
+clients = {}  # Словарь для хранения подключенных пользователей
+games = {}    # Словарь для хранения игровых сессий
+
 class MUD:
-    def __init__(self):
+    def __init__(self, username):
         self.field = [[None for _ in range(10)] for _ in range(10)]
         self.player_position = (0, 0)
         self.weapons = {"sword": 10, "spear": 15, "axe": 20}
+        self.username = username
         self.jgsbat_func = None
         try:
             with open("jgsbat.cow", "r", encoding="utf-8") as f:
@@ -63,16 +67,38 @@ class MUD:
         return f'{damage} {hp}'
 
 async def handle_client(reader, writer):
-    game = MUD()
+    username = (await reader.readline()).decode().strip()
+
+    # Проверяем, что имя уникально
+    if username in clients:
+        writer.write(b"Username already taken\n")
+        await writer.drain()
+        writer.close()
+        await writer.wait_closed()
+        return  # Просто выходим, не затрагивая старого клиента
 
     try:
-        while True:
+        # Регистрируем нового пользователя
+        clients[username] = asyncio.Queue()
+        games[username] = MUD(username)
+        writer.write(b"Welcome to MUD!\n")
+        await writer.drain()
+
+        print(f"{username} connected")
+
+        # Основной цикл обработки команд
+        while not reader.at_eof():
             data = await reader.readline()
             if not data:
                 break
+
             message = data.decode().strip()
             parts = message.split()
+            if not parts:
+                continue
+
             cmd = parts[0]
+            game = games[username]
 
             if cmd == "addmon":
                 name, x, y, hp = parts[1:5]
@@ -89,11 +115,21 @@ async def handle_client(reader, writer):
 
             writer.write(response.encode() + b'\n')
             await writer.drain()
-    except asyncio.CancelledError:
-        pass
+
+    except Exception as e:
+        print(f"Error: {e}")
+
     finally:
+        # Удаляем только если клиент действительно был в игре
+        if username in clients:
+            del clients[username]
+        if username in games:
+            del games[username]
+
         writer.close()
         await writer.wait_closed()
+        print(f"{username} disconnected")
+
 
 async def main():
     server = await asyncio.start_server(handle_client, '0.0.0.0', 1337)
