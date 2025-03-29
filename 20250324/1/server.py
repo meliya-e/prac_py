@@ -5,13 +5,15 @@ import shlex
 clients = {}  # Словарь для хранения подключенных пользователей
 games = {}    # Словарь для хранения игровых сессий
 
+# Глобальные переменные для хранения общего состояния игры
+game_field = [[None for _ in range(10)] for _ in range(10)]
+monsters = set()
+
 class MUD:
     def __init__(self, username):
-        self.field = [[None for _ in range(10)] for _ in range(10)]
         self.player_position = (0, 0)
         self.weapons = {"sword": 10, "spear": 15, "axe": 20}
         self.username = username
-        self.monsters = set()  # Добавляем множество для отслеживания существующих монстров
         self.jgsbat_func = None
         try:
             with open("jgsbat.cow", "r", encoding="utf-8") as f:
@@ -28,7 +30,7 @@ class MUD:
         return f"{x} {y}"
 
     def encounter(self, x, y):
-        monster = self.field[x][y]
+        monster = game_field[x][y]
         if monster:
             name, hello, _ = monster
             if name == "jgsbat" and self.jgsbat_func:
@@ -49,26 +51,26 @@ class MUD:
         if (x, y) == self.player_position:
             return "cannot add monster to player's position"
 
-        old_mon = self.field[x][y] is not None
-        self.field[x][y] = (name, hello, hp)
-        self.monsters.add(name)  # Добавляем монстра в множество
+        old_mon = game_field[x][y] is not None
+        game_field[x][y] = (name, hello, hp)
+        monsters.add(name)
         return "1" if old_mon else "0"
 
     def attack(self, weapon, name):
-        if name not in self.monsters:  # Проверяем, существует ли вообще такой монстр
+        if name not in monsters:
             return f'no such monster {name}'
         x, y = self.player_position
-        monster = self.field[x][y]
+        monster = game_field[x][y]
         if not monster or monster[0] != name:
-            return f'no {name} here'  # Монстр существует, но не в этой клетке
+            return f'no {name} here'
         name, hello, hp = monster
         damage = min(self.weapons[weapon], hp)
         hp -= damage
         if hp <= 0:
-            self.field[x][y] = None
-            self.monsters.remove(name)  # Удаляем монстра из множества при его смерти
+            game_field[x][y] = None
+            monsters.remove(name)
             return f'{damage} 0'
-        self.field[x][y] = (name, hello, hp)
+        game_field[x][y] = (name, hello, hp)
         return f'{damage} {hp}'
 
 async def broadcast_message(message, exclude=None):
@@ -92,7 +94,8 @@ async def handle_client(reader, writer):
     writer.write(b"Welcome to MUD!\n")
     await writer.drain()
 
-    await broadcast_message(f"{username} has joined the game")
+    # Отправляем сообщение о присоединении всем, кроме самого пользователя
+    await broadcast_message(f"{username} has joined the game", exclude=username)
     print(f"{username} connected")
 
     send_task = asyncio.create_task(send_messages(writer, username))
@@ -112,33 +115,73 @@ async def handle_client(reader, writer):
             game = games[username]
 
             if cmd == "addmon":
-                name, x, y, hp = parts[1:5]
-                hello = ' '.join(parts[5:])
-                response = game.add_monster(int(x), int(y), int(hp), hello, name)
+                try:
+                    name, x, y, hp = parts[1:5]
+                    hello = ' '.join(parts[5:])
+                    x, y, hp = map(int, [x, y, hp])
+                    
+                    if name not in cowsay.list_cows() and name != "jgsbat":
+                        await clients[username].put("cannot add unknown monster")
+                        continue
+                    if (x, y) == game.player_position:
+                        await clients[username].put("cannot add the monster in player's position")
+                        continue
+                    if x < 0 or x >= 10 or y < 0 or y >= 10 or hp <= 0:
+                        await clients[username].put("Invalid arguments")
+                        continue
 
-                if response == "cannot add unknown monster":
-                    await clients[username].put(response)
-                elif response == "cannot add monster to player's position":
-                    await clients[username].put("cannot add the monster in player's position")
-                else:
-                    await broadcast_message(f"{username} added monster {name} to ({x}, {y}) with {hp} hp")
+                    old_mon = game_field[x][y] is not None
+                    game_field[x][y] = (name, hello, hp)
+                    monsters.add(name)
+                    
+                    message = f"{username} added monster {name} to ({x}, {y}) with {hp} hp"
+                    if old_mon:
+                        message += "\nReplaced the old monster"
+                    await broadcast_message(message)
+                except (ValueError, IndexError):
+                    await clients[username].put("Invalid arguments")
 
             elif cmd == "attack":
-                weapon, name = parts[1:3]
-                response = game.attack(weapon, name)
-                if response.startswith('no'):
-                    await clients[username].put(response)
-                else:
-                    damage, hp = map(int, response.split())
-                    if hp == 0:
+                try:
+                    weapon, name = parts[1:3]
+                    if weapon not in ["sword", "spear", "axe"]:
+                        await clients[username].put("Unknown weapon")
+                        continue
+                    if name not in monsters:
+                        await clients[username].put(f"no such monster {name}")
+                        continue
+
+                    x, y = game.player_position
+                    monster = game_field[x][y]
+                    if not monster or monster[0] != name:
+                        await clients[username].put(f"no {name} here")
+                        continue
+
+                    name, hello, hp = monster
+                    damage = min(game.weapons[weapon], hp)
+                    hp -= damage
+                    
+                    if hp <= 0:
+                        game_field[x][y] = None
+                        monsters.remove(name)
                         await broadcast_message(f"{username} attacked {name} with {weapon} for {damage} hp, {name} died")
                     else:
+                        game_field[x][y] = (name, hello, hp)
                         await broadcast_message(f"{username} attacked {name} with {weapon} for {damage} hp, {name} has {hp} hp left")
+                except (ValueError, IndexError):
+                    await clients[username].put("Invalid arguments")
 
             elif cmd == "move":
-                d_x, d_y = map(int, parts[1:3])
-                response = game.moving(d_x, d_y)
-                await clients[username].put(response)
+                try:
+                    d_x, d_y = map(int, parts[1:3])
+                    new_position = game.move_player(d_x, d_y)
+                    encounter_message = game.encounter(game.player_position[0], game.player_position[1])
+                    if encounter_message:
+                        await clients[username].put(f"Moved to ({new_position})\n{encounter_message}")
+                    else:
+                        await clients[username].put(f"Moved to ({new_position})")
+                except (ValueError, IndexError):
+                    await clients[username].put("Invalid arguments")
 
             else:
                 await clients[username].put("Unknown command")
@@ -157,7 +200,7 @@ async def handle_client(reader, writer):
         if username in games:
             del games[username]
 
-        await broadcast_message(f"{username} has left the game")
+        await broadcast_message(f"{username} has left the game", exclude=username)
 
         writer.close()
         await writer.wait_closed()

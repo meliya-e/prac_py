@@ -7,6 +7,18 @@ import threading
 import readline
 import time
 
+class Error(Exception):
+    def __init__(self, code, name=''):
+        match code:
+            case 1:
+                self.text = "Invalid arguments"
+            case 2:
+                self.text = "Cannot add unknown monster"
+            case 3:
+                self.text = f"No {name} here"
+            case 4:
+                self.text = "Unknown weapon"
+
 class Client_MUD(cmd.Cmd):
     prompt = 'MUD> '
     host = "localhost"
@@ -17,7 +29,7 @@ class Client_MUD(cmd.Cmd):
         self.username = username
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.connect((self.host, self.port))
-        
+
         # Отправляем имя пользователя при подключении
         self.s.sendall(f"{username}\n".encode())
         response = self.s.recv(1024).decode().strip()
@@ -25,9 +37,9 @@ class Client_MUD(cmd.Cmd):
             print("This username is already taken")
             sys.exit(1)
         print(response)
-        
+
         self.monsters = set()
-        
+
         # Start message receiving thread
         self.receive_thread = threading.Thread(target=self.receive_messages, daemon=True)
         self.receive_thread.start()
@@ -42,12 +54,17 @@ class Client_MUD(cmd.Cmd):
                 # Strip only trailing whitespace to preserve newlines in cowsay art
                 message = message.rstrip()
                 if message:
-                    print(f"\n{message}\n{self.prompt}{readline.get_line_buffer()}", end="", flush=True)
+                    # Сохраняем текущий ввод пользователя
+                    current_input = readline.get_line_buffer()
+                    # Выводим сообщение
+                    print(f"\n{message}")
+                    # Восстанавливаем ввод пользователя
+                    print(f"{self.prompt}{current_input}", end="", flush=True)
             except ConnectionError:
                 print("\nConnection lost. Exiting...")
                 break
             except Exception as e:
-                print(f"\nError: {e}\n{self.prompt}{readline.get_line_buffer()}", end="", flush=True)
+                print(f"\nError: {e}")
                 break
 
     def response_addmon(self, name, x, y, hello):
@@ -56,13 +73,13 @@ class Client_MUD(cmd.Cmd):
             print(response)
             return
         print(f"Added monster {name} to ({x}, {y}) saying {hello}")
-        if response == '1': 
+        if response == '1':
             print("Replaced the old monster")
         self.monsters.add(name)
 
     def response_attack(self, name):
         response = self.s.recv(1024).rstrip().decode()
-        
+
         if response == 'no':
             print(f"No {name} here")
             return
@@ -86,14 +103,22 @@ class Client_MUD(cmd.Cmd):
     def do_addmon(self, args):
         try:
             x, y, hp, hello, name = self.add_monster_check(args)
-            self.s.sendall(f"addmon {name} {x} {y} {hp} {hello}\n".encode())
+            try:
+                self.s.sendall(f"addmon {name} {x} {y} {hp} {hello}\n".encode())
+            except ConnectionError:
+                print("\nConnection lost. Exiting...")
+                return True
         except Error as e:
             print(e.text)
 
     def do_attack(self, args):
         try:
             weapon, name = self.attack_check(args)
-            self.s.sendall(f"attack {weapon} {name}\n".encode())
+            try:
+                self.s.sendall(f"attack {weapon} {name}\n".encode())
+            except ConnectionError:
+                print("\nConnection lost. Exiting...")
+                return True
         except Error as e:
             print(e.text)
 
@@ -101,25 +126,41 @@ class Client_MUD(cmd.Cmd):
         if args:
             print(Error(1).text)
         else:
-            self.s.sendall(f"move 0 -1\n".encode())
+            try:
+                self.s.sendall(f"move 0 -1\n".encode())
+            except ConnectionError:
+                print("\nConnection lost. Exiting...")
+                return True
 
     def do_down(self, args):
         if args:
             print(Error(1).text)
         else:
-            self.s.sendall(f"move 0 1\n".encode())
+            try:
+                self.s.sendall(f"move 0 1\n".encode())
+            except ConnectionError:
+                print("\nConnection lost. Exiting...")
+                return True
 
     def do_left(self, args):
         if args:
             print(Error(1).text)
         else:
-            self.s.sendall(f"move -1 0\n".encode())
+            try:
+                self.s.sendall(f"move -1 0\n".encode())
+            except ConnectionError:
+                print("\nConnection lost. Exiting...")
+                return True
 
     def do_right(self, args):
         if args:
             print(Error(1).text)
         else:
-            self.s.sendall(f"move 1 0\n".encode())
+            try:
+                self.s.sendall(f"move 1 0\n".encode())
+            except ConnectionError:
+                print("\nConnection lost. Exiting...")
+                return True
 
     def default(self, args):
         print("Invalid command")
@@ -138,7 +179,7 @@ class Client_MUD(cmd.Cmd):
         return [c for c in DICT if c.startswith(text)]
 
     def complete_attack(self, text, line, begidx, endidx):
-        parts = line.split()  
+        parts = line.split()
         if len(parts) <= 2:
             monsters = cowsay.list_cows() + ["jgsbat"]
             return [m for m in monsters if m.startswith(text)]
@@ -175,7 +216,7 @@ class Client_MUD(cmd.Cmd):
             weapon = parsed_args["with"][0]
             if weapon not in ["sword", "spear", "axe"]:
                 raise Error(4)
-        else: 
+        else:
             weapon = "sword"
         if len(args) == 0 or splitted[0] not in cowsay.list_cows() + ["jgsbat"]:
             raise Error(1)
@@ -190,22 +231,10 @@ def parse_args(args, param):
         args_parsed[i] = args[args.index(i) + 1: args.index(i) + 1 + param[i]]
     return args_parsed
 
-class Error(Exception):
-    def __init__(self, code, name=''):
-        match code:
-            case 1:
-                self.text = "Invalid arguments"
-            case 2:
-                self.text = "Cannot add unknown monster"
-            case 3:
-                self.text = f"No {name} here"
-            case 4:
-                self.text = "Unknown weapon"
-
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print("Usage: python client.py <username>")
         sys.exit(1)
-        
+
     username = sys.argv[1]
     Client_MUD(username).cmdloop()
