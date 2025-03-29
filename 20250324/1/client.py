@@ -3,6 +3,9 @@ import shlex
 import cowsay
 import socket
 import sys
+import threading
+import readline
+import time
 
 class Client_MUD(cmd.Cmd):
     prompt = 'MUD> '
@@ -24,6 +27,28 @@ class Client_MUD(cmd.Cmd):
         print(response)
         
         self.monsters = set()
+        
+        # Start message receiving thread
+        self.receive_thread = threading.Thread(target=self.receive_messages, daemon=True)
+        self.receive_thread.start()
+
+    def receive_messages(self):
+        while True:
+            try:
+                message = self.s.recv(4096).decode()
+                if not message:
+                    print("\nConnection lost. Exiting...")
+                    break
+                # Strip only trailing whitespace to preserve newlines in cowsay art
+                message = message.rstrip()
+                if message:
+                    print(f"\n{message}\n{self.prompt}{readline.get_line_buffer()}", end="", flush=True)
+            except ConnectionError:
+                print("\nConnection lost. Exiting...")
+                break
+            except Exception as e:
+                print(f"\nError: {e}\n{self.prompt}{readline.get_line_buffer()}", end="", flush=True)
+                break
 
     def response_addmon(self, name, x, y, hello):
         response = self.s.recv(1024).rstrip().decode()
@@ -62,7 +87,6 @@ class Client_MUD(cmd.Cmd):
         try:
             x, y, hp, hello, name = self.add_monster_check(args)
             self.s.sendall(f"addmon {name} {x} {y} {hp} {hello}\n".encode())
-            self.response_addmon(name, x, y, hello)
         except Error as e:
             print(e.text)
 
@@ -70,7 +94,6 @@ class Client_MUD(cmd.Cmd):
         try:
             weapon, name = self.attack_check(args)
             self.s.sendall(f"attack {weapon} {name}\n".encode())
-            self.response_attack(name)
         except Error as e:
             print(e.text)
 
@@ -79,28 +102,24 @@ class Client_MUD(cmd.Cmd):
             print(Error(1).text)
         else:
             self.s.sendall(f"move 0 -1\n".encode())
-            self.response_move()
 
     def do_down(self, args):
         if args:
             print(Error(1).text)
         else:
             self.s.sendall(f"move 0 1\n".encode())
-            self.response_move()
 
     def do_left(self, args):
         if args:
             print(Error(1).text)
         else:
             self.s.sendall(f"move -1 0\n".encode())
-            self.response_move()
 
     def do_right(self, args):
         if args:
             print(Error(1).text)
         else:
             self.s.sendall(f"move 1 0\n".encode())
-            self.response_move()
 
     def default(self, args):
         print("Invalid command")
@@ -119,7 +138,6 @@ class Client_MUD(cmd.Cmd):
         return [c for c in DICT if c.startswith(text)]
 
     def complete_attack(self, text, line, begidx, endidx):
-        """Автодополнение attack по именам доступных монстров"""
         parts = line.split()  
         if len(parts) <= 2:
             monsters = cowsay.list_cows() + ["jgsbat"]
