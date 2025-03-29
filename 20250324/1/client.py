@@ -51,15 +51,14 @@ class Client_MUD(cmd.Cmd):
                 if not message:
                     print("\nConnection lost. Exiting...")
                     break
-                # Strip only trailing whitespace to preserve newlines in cowsay art
+            # Strip only trailing whitespace to preserve newlines in cowsay art
                 message = message.rstrip()
                 if message:
-                    # Сохраняем текущий ввод пользователя
+                # Сохраняем текущий ввод пользователя
                     current_input = readline.get_line_buffer()
-                    # Выводим сообщение
-                    print(f"\n{message}")
-                    # Восстанавливаем ввод пользователя
-                    print(f"{self.prompt}{current_input}", end="", flush=True)
+                # Выводим сообщение и восстанавливаем ввод пользователя за один раз
+                    sys.stdout.write(f"\r{message}\n{self.prompt}{current_input}")
+                    sys.stdout.flush()
             except ConnectionError:
                 print("\nConnection lost. Exiting...")
                 break
@@ -238,3 +237,4 @@ if __name__ == '__main__':
 
     username = sys.argv[1]
     Client_MUD(username).cmdloop()
+
