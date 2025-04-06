@@ -1,3 +1,7 @@
+"""
+Client module for MOOD MUD game.
+"""
+
 import cmd
 import shlex
 import cowsay
@@ -5,7 +9,7 @@ import socket
 import sys
 import threading
 import readline
-import time
+
 
 class Error(Exception):
     def __init__(self, code, name=''):
@@ -18,6 +22,7 @@ class Error(Exception):
                 self.text = f"No {name} here"
             case 4:
                 self.text = "Unknown weapon"
+
 
 class Client_MUD(cmd.Cmd):
     prompt = 'MUD> '
@@ -162,7 +167,9 @@ class Client_MUD(cmd.Cmd):
                 return True
 
     def do_sayall(self, args):
-        """Send a message to all players. Usage: sayall <message> or sayall "message with spaces" """
+        """
+        Send a message to all players. Usage: sayall <message> or sayall "message with spaces"
+        """
         if not args:
             print("Invalid arguments")
             return
@@ -233,6 +240,7 @@ class Client_MUD(cmd.Cmd):
         name = splitted[0]
         return weapon, name
 
+
 def parse_args(args, param):
     args_parsed = {}
     for i in param:
@@ -241,6 +249,7 @@ def parse_args(args, param):
         args_parsed[i] = args[args.index(i) + 1: args.index(i) + 1 + param[i]]
     return args_parsed
 
+
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print("Usage: python client.py <username>")
@@ -248,4 +257,3 @@ if __name__ == '__main__':
 
     username = sys.argv[1]
     Client_MUD(username).cmdloop()
-

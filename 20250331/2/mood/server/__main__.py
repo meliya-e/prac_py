@@ -1,6 +1,11 @@
+"""
+Server module for MOOD MUD game.
+"""
+
 import asyncio
 import cowsay
 import shlex
+
 
 clients = {}  # Словарь для хранения подключенных пользователей
 games = {}    # Словарь для хранения игровых сессий
@@ -8,6 +13,7 @@ games = {}    # Словарь для хранения игровых сесси
 # Глобальные переменные для хранения общего состояния игры
 game_field = [[None for _ in range(10)] for _ in range(10)]
 monsters = set()
+
 
 class MUD:
     def __init__(self, username):
@@ -73,10 +79,12 @@ class MUD:
         game_field[x][y] = (name, hello, hp)
         return f'{damage} {hp}'
 
+
 async def broadcast_message(message, exclude=None):
     for username, queue in clients.items():
         if username != exclude:
             await queue.put(message)
+
 
 async def handle_client(reader, writer):
     username = (await reader.readline()).decode().strip()
@@ -119,7 +127,6 @@ async def handle_client(reader, writer):
                     name, x, y, hp = parts[1:5]
                     hello = ' '.join(parts[5:])
                     x, y, hp = map(int, [x, y, hp])
-                    
                     if name not in cowsay.list_cows() and name != "jgsbat":
                         await clients[username].put("cannot add unknown monster")
                         continue
@@ -133,7 +140,6 @@ async def handle_client(reader, writer):
                     old_mon = game_field[x][y] is not None
                     game_field[x][y] = (name, hello, hp)
                     monsters.add(name)
-                    
                     message = f"{username} added monster {name} to ({x}, {y}) with {hp} hp"
                     if old_mon:
                         message += "\nReplaced the old monster"
@@ -160,7 +166,6 @@ async def handle_client(reader, writer):
                     name, hello, hp = monster
                     damage = min(game.weapons[weapon], hp)
                     hp -= damage
-                    
                     if hp <= 0:
                         game_field[x][y] = None
                         monsters.remove(name)
@@ -187,14 +192,12 @@ async def handle_client(reader, writer):
                 if len(parts) < 2:
                     await clients[username].put("Invalid arguments")
                     continue
-                
                 try:
                     # Используем shlex.split для корректной обработки строк в кавычках
                     parsed = shlex.split(message)
                     if len(parsed) < 2:
                         await clients[username].put("Invalid arguments")
                         continue
-                    
                     # Берем все аргументы после команды как сообщение
                     msg_to_broadcast = ' '.join(parsed[1:])
                     await broadcast_message(f"{username}: {msg_to_broadcast}")
@@ -224,6 +227,7 @@ async def handle_client(reader, writer):
         await writer.wait_closed()
         print(f"{username} disconnected")
 
+
 async def send_messages(writer, username):
     try:
         while True:
@@ -233,11 +237,12 @@ async def send_messages(writer, username):
     except asyncio.CancelledError:
         pass
 
+
 async def main():
     server = await asyncio.start_server(handle_client, '0.0.0.0', 1337)
     async with server:
         await server.serve_forever()
 
+
 if __name__ == "__main__":
     asyncio.run(main())
-

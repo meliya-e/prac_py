@@ -1,7 +1,11 @@
+"""
+Common utilities for MOOD MUD game.
+"""
+
 import cmd
-import sys
 import shlex
 import cowsay
+
 
 class MUD(cmd.Cmd):
     prompt = ">"
@@ -17,7 +21,7 @@ class MUD(cmd.Cmd):
         self.jgsbat_func = None
         try:
             with open("jgsbat.cow", "r", encoding="utf-8") as f:
-                jgsbat_template = cowsay.read_dot_cow(f) #шаблон ackii-арта
+                jgsbat_template = cowsay.read_dot_cow(f)  # шаблон ackii-арта
                 self.jgsbat_func = lambda msg: cowsay.cowsay(msg, cowfile=jgsbat_template)
         except Exception as e:
             print(f"Ошибка загрузки монстра jgsbat: {e}")
@@ -160,7 +164,7 @@ class MUD(cmd.Cmd):
     def do_EOF():
         return 1
 
+
 if __name__ == "__main__":
     game = MUD()
     game.cmdloop()
-
