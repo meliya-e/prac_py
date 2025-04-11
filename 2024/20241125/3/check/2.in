@@ -1,0 +1,10 @@
+wo = Vowel(y=22, a=12, i=3)
+try:
+    wo.answer = 10
+except AttributeError as e:
+    print(e)  # Выведет ошибку
+
+try:
+    print(wo.z)
+except AttributeError as e:
+    print(e)

@@ -1,0 +1,16 @@
+e = Omnibus()
+e.a = 100500
+e.a = 25
+del e.a
+del e.a
+del e.a
+e.a = 100500
+del e.a
+e.a = 100500
+e.a = 25
+print(e.a)
+del e.a
+del e.a
+e.a = 100500
+del e.a
+print(e.a)
