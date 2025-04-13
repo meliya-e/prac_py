@@ -5,7 +5,7 @@ Server module for MOOD MUD game.
 import asyncio
 import cowsay
 import shlex
-
+import random
 
 clients = {}  # Словарь для хранения подключенных пользователей
 games = {}    # Словарь для хранения игровых сессий
@@ -13,7 +13,6 @@ games = {}    # Словарь для хранения игровых сесси
 # Глобальные переменные для хранения общего состояния игры
 game_field = [[None for _ in range(10)] for _ in range(10)]
 monsters = set()
-
 
 class MUD:
     def __init__(self, username):
@@ -79,12 +78,61 @@ class MUD:
         game_field[x][y] = (name, hello, hp)
         return f'{damage} {hp}'
 
-
 async def broadcast_message(message, exclude=None):
     for username, queue in clients.items():
         if username != exclude:
             await queue.put(message)
 
+async def move_random_monster():
+    while True:
+        await asyncio.sleep(30)  # Ждем 30 секунд
+
+        # Получаем список всех монстров и их позиций
+        monster_positions = []
+        for x in range(10):
+            for y in range(10):
+                if game_field[x][y] is not None:
+                    monster_positions.append((x, y, game_field[x][y]))
+
+        if not monster_positions:
+            continue  # Если нет монстров, пропускаем итерацию
+
+        # Выбираем случайного монстра
+        x, y, monster = random.choice(monster_positions)
+        name, hello, hp = monster
+
+        # Пробуем переместить монстра, пока не найдем свободную клетку
+        moved = False
+        while not moved:
+            # Выбираем случайное направление
+            direction = random.choice(['right', 'left', 'up', 'down'])
+            new_x, new_y = x, y
+
+            if direction == 'right':
+                new_x = (x + 1) % 10
+            elif direction == 'left':
+                new_x = (x - 1) % 10
+            elif direction == 'up':
+                new_y = (y - 1) % 10
+            elif direction == 'down':
+                new_y = (y + 1) % 10
+
+            # Проверяем, свободна ли клетка
+            if game_field[new_x][new_y] is None:
+                # Перемещаем монстра
+                game_field[new_x][new_y] = monster
+                game_field[x][y] = None
+
+                # Отправляем сообщение о перемещении всем игрокам
+                await broadcast_message(f"{name} moved one cell {direction}")
+
+                for username, game in games.items():
+                    if game.player_position == (new_x, new_y):
+                        encounter_message = game.encounter(new_x, new_y)
+                        if encounter_message:
+                            await clients[username].put(encounter_message)
+                
+                moved = True
 
 async def handle_client(reader, writer):
     username = (await reader.readline()).decode().strip()
@@ -127,6 +175,7 @@ async def handle_client(reader, writer):
                     name, x, y, hp = parts[1:5]
                     hello = ' '.join(parts[5:])
                     x, y, hp = map(int, [x, y, hp])
+                    
                     if name not in cowsay.list_cows() and name != "jgsbat":
                         await clients[username].put("cannot add unknown monster")
                         continue
@@ -140,6 +189,7 @@ async def handle_client(reader, writer):
                     old_mon = game_field[x][y] is not None
                     game_field[x][y] = (name, hello, hp)
                     monsters.add(name)
+                    
                     message = f"{username} added monster {name} to ({x}, {y}) with {hp} hp"
                     if old_mon:
                         message += "\nReplaced the old monster"
@@ -166,6 +216,7 @@ async def handle_client(reader, writer):
                     name, hello, hp = monster
                     damage = min(game.weapons[weapon], hp)
                     hp -= damage
+                    
                     if hp <= 0:
                         game_field[x][y] = None
                         monsters.remove(name)
@@ -192,12 +243,14 @@ async def handle_client(reader, writer):
                 if len(parts) < 2:
                     await clients[username].put("Invalid arguments")
                     continue
+                
                 try:
                     # Используем shlex.split для корректной обработки строк в кавычках
                     parsed = shlex.split(message)
                     if len(parsed) < 2:
                         await clients[username].put("Invalid arguments")
                         continue
+                    
                     # Берем все аргументы после команды как сообщение
                     msg_to_broadcast = ' '.join(parsed[1:])
                     await broadcast_message(f"{username}: {msg_to_broadcast}")
@@ -227,7 +280,6 @@ async def handle_client(reader, writer):
         await writer.wait_closed()
         print(f"{username} disconnected")
 
-
 async def send_messages(writer, username):
     try:
         while True:
@@ -237,12 +289,14 @@ async def send_messages(writer, username):
     except asyncio.CancelledError:
         pass
 
-
 async def main():
     server = await asyncio.start_server(handle_client, '0.0.0.0', 1337)
+    
+    # Запускаем задачу перемещения монстров
+    asyncio.create_task(move_random_monster())
+    
     async with server:
         await server.serve_forever()
-
 
 if __name__ == "__main__":
     asyncio.run(main())
