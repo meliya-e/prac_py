@@ -1,5 +1,7 @@
-"""
-Client module for MOOD MUD game.
+"""MUD (Multi-User Dungeon) game client module.
+
+This module implements a client for the MUD game, allowing players
+to connect to the server and interact with the game world.
 """
 
 import cmd
@@ -9,10 +11,24 @@ import socket
 import sys
 import threading
 import readline
+import time
+import argparse
 
 
 class Error(Exception):
+    """Custom exception class for game errors.
+
+    Attributes:
+        text (str): Error message text.
+    """
+
     def __init__(self, code, name=''):
+        """Initialize error with code and optional name.
+
+        Args:
+            code (int): Error code.
+            name (str, optional): Additional name parameter for some errors.
+        """
         match code:
             case 1:
                 self.text = "Invalid arguments"
@@ -23,13 +39,31 @@ class Error(Exception):
             case 4:
                 self.text = "Unknown weapon"
 
-
 class Client_MUD(cmd.Cmd):
+    """Command interpreter for MUD client.
+
+    This class handles command interpretation and communication
+    with the MUD server.
+
+    Attributes:
+        prompt (str): Command prompt string.
+        host (str): Server hostname.
+        port (int): Server port number.
+        command_delay (float): Delay between commands in seconds.
+    """
+
     prompt = 'MUD> '
     host = "localhost"
     port = 1337
+    command_delay = 1.0  # Delay between commands in seconds
 
-    def __init__(self, username):
+    def __init__(self, username, input_file=None):
+        """Initialize client with username and optional input file.
+
+        Args:
+            username (str): Player's username.
+            input_file (file, optional): File object for command input.
+        """
         super().__init__()
         self.username = username
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -49,19 +83,49 @@ class Client_MUD(cmd.Cmd):
         self.receive_thread = threading.Thread(target=self.receive_messages, daemon=True)
         self.receive_thread.start()
 
+        # Если указан файл ввода, настраиваем cmd для работы с ним
+        if input_file:
+            self.stdin = input_file
+            self.prompt = ''
+            self.use_rawinput = False
+
+    def do_EOF(self, args):
+        """Handle end of file/input.
+
+        Args:
+            args: Command arguments (unused).
+
+        Returns:
+            bool: Always returns True to indicate EOF.
+        """
+        return True
+
+    def precmd(self, line):
+        """Process command before execution.
+
+        Args:
+            line (str): Command line to process.
+
+        Returns:
+            str: Processed command line.
+        """
+        time.sleep(self.command_delay)  # Add delay between commands
+        return line
+
     def receive_messages(self):
+        """Receive and process messages from server."""
         while True:
             try:
                 message = self.s.recv(4096).decode()
                 if not message:
                     print("\nConnection lost. Exiting...")
                     break
-            # Strip only trailing whitespace to preserve newlines in cowsay art
+                # Strip only trailing whitespace to preserve newlines in cowsay art
                 message = message.rstrip()
                 if message:
-                # Сохраняем текущий ввод пользователя
+                    # Сохраняем текущий ввод пользователя
                     current_input = readline.get_line_buffer()
-                # Выводим сообщение и восстанавливаем ввод пользователя за один раз
+                    # Выводим сообщение и восстанавливаем ввод пользователя за один раз
                     sys.stdout.write(f"\r{message}\n{self.prompt}{current_input}")
                     sys.stdout.flush()
             except ConnectionError:
@@ -72,6 +136,14 @@ class Client_MUD(cmd.Cmd):
                 break
 
     def response_addmon(self, name, x, y, hello):
+        """Process response from addmon command.
+
+        Args:
+            name (str): Monster name.
+            x (int): X coordinate.
+            y (int): Y coordinate.
+            hello (str): Monster greeting message.
+        """
         response = self.s.recv(1024).rstrip().decode()
         if response == "cannot add monster to player's position":
             print(response)
@@ -82,6 +154,11 @@ class Client_MUD(cmd.Cmd):
         self.monsters.add(name)
 
     def response_attack(self, name):
+        """Process response from attack command.
+
+        Args:
+            name (str): Monster name.
+        """
         response = self.s.recv(1024).rstrip().decode()
 
         if response == 'no':
@@ -98,6 +175,7 @@ class Client_MUD(cmd.Cmd):
             print(f"{name} now has {hp}")
 
     def response_move(self):
+        """Process response from move command."""
         response = self.s.recv(4096).decode().strip()
         parts = response.split("\n", 1)
         print(f"Moved to ({parts[0]})")
@@ -105,6 +183,10 @@ class Client_MUD(cmd.Cmd):
             print(parts[1])
 
     def do_addmon(self, args):
+        """Add a monster to the game.
+
+        Usage: addmon <name> <x> <y> <hp> <hello>
+        """
         try:
             x, y, hp, hello, name = self.add_monster_check(args)
             try:
@@ -116,6 +198,10 @@ class Client_MUD(cmd.Cmd):
             print(e.text)
 
     def do_attack(self, args):
+        """Attack a monster.
+
+        Usage: attack <monster_name> with <weapon>
+        """
         try:
             weapon, name = self.attack_check(args)
             try:
@@ -127,6 +213,7 @@ class Client_MUD(cmd.Cmd):
             print(e.text)
 
     def do_up(self, args):
+        """Move player up."""
         if args:
             print(Error(1).text)
         else:
@@ -137,6 +224,7 @@ class Client_MUD(cmd.Cmd):
                 return True
 
     def do_down(self, args):
+        """Move player down."""
         if args:
             print(Error(1).text)
         else:
@@ -147,6 +235,7 @@ class Client_MUD(cmd.Cmd):
                 return True
 
     def do_left(self, args):
+        """Move player left."""
         if args:
             print(Error(1).text)
         else:
@@ -157,6 +246,7 @@ class Client_MUD(cmd.Cmd):
                 return True
 
     def do_right(self, args):
+        """Move player right."""
         if args:
             print(Error(1).text)
         else:
@@ -167,8 +257,9 @@ class Client_MUD(cmd.Cmd):
                 return True
 
     def do_sayall(self, args):
-        """
-        Send a message to all players. Usage: sayall <message> or sayall "message with spaces"
+        """Send a message to all players.
+
+        Usage: sayall <message> or sayall "message with spaces"
         """
         if not args:
             print("Invalid arguments")
@@ -180,9 +271,25 @@ class Client_MUD(cmd.Cmd):
             return True
 
     def default(self, args):
+        """Handle unknown commands.
+
+        Args:
+            args: Command arguments.
+        """
         print("Invalid command")
 
     def complete_addmon(self, text, line, begidx, endidx):
+        """Complete addmon command arguments.
+
+        Args:
+            text (str): Text to complete.
+            line (str): Current command line.
+            begidx (int): Start index of text.
+            endidx (int): End index of text.
+
+        Returns:
+            list: List of possible completions.
+        """
         words = (line[:endidx] + ".").split()
         DICT = list({'hello', 'hp', 'coords'} - set(line[:endidx].split()))
         if 'coords' in words and words[-2] != 'coords':
@@ -196,6 +303,17 @@ class Client_MUD(cmd.Cmd):
         return [c for c in DICT if c.startswith(text)]
 
     def complete_attack(self, text, line, begidx, endidx):
+        """Complete attack command arguments.
+
+        Args:
+            text (str): Text to complete.
+            line (str): Current command line.
+            begidx (int): Start index of text.
+            endidx (int): End index of text.
+
+        Returns:
+            list: List of possible completions.
+        """
         parts = line.split()
         if len(parts) <= 2:
             monsters = cowsay.list_cows() + ["jgsbat"]
@@ -205,6 +323,17 @@ class Client_MUD(cmd.Cmd):
         return []
 
     def add_monster_check(self, args):
+        """Validate addmon command arguments.
+
+        Args:
+            args (str): Command arguments.
+
+        Returns:
+            tuple: Validated arguments (x, y, hp, hello, name).
+
+        Raises:
+            Error: If arguments are invalid.
+        """
         preprocess = shlex.split(args)
         if len(preprocess) != 8:
             raise Error(1)
@@ -227,6 +356,17 @@ class Client_MUD(cmd.Cmd):
         return x, y, hp, hello, name
 
     def attack_check(self, args):
+        """Validate attack command arguments.
+
+        Args:
+            args (str): Command arguments.
+
+        Returns:
+            tuple: Validated arguments (weapon, name).
+
+        Raises:
+            Error: If arguments are invalid.
+        """
         splitted = shlex.split(args)
         parsed_args = parse_args(splitted, {'with': 1})
         if parsed_args:
@@ -240,8 +380,16 @@ class Client_MUD(cmd.Cmd):
         name = splitted[0]
         return weapon, name
 
-
 def parse_args(args, param):
+    """Parse command arguments.
+
+    Args:
+        args (list): List of arguments.
+        param (dict): Parameter specifications.
+
+    Returns:
+        dict: Parsed arguments or None if invalid.
+    """
     args_parsed = {}
     for i in param:
         if i not in args:
@@ -249,11 +397,27 @@ def parse_args(args, param):
         args_parsed[i] = args[args.index(i) + 1: args.index(i) + 1 + param[i]]
     return args_parsed
 
+def main():
+    """Main entry point for the client."""
+    parser = argparse.ArgumentParser(description='MUD game client')
+    parser.add_argument('username', help='Player username')
+    parser.add_argument('--file', help='Command file to execute')
+    args = parser.parse_args()
+
+    input_file = None
+    if args.file:
+        try:
+            input_file = open(args.file, 'r')
+        except IOError:
+            print(f"Error: Could not open file {args.file}")
+            sys.exit(1)
+
+    client = Client_MUD(args.username, input_file)
+    try:
+        client.cmdloop()
+    finally:
+        if input_file:
+            input_file.close()
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print("Usage: python client.py <username>")
-        sys.exit(1)
-
-    username = sys.argv[1]
-    Client_MUD(username).cmdloop()
+    main() 
