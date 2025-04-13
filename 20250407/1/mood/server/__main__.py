@@ -1,5 +1,12 @@
-"""
-Server module for MOOD MUD game.
+"""MUD (Multi-User Dungeon) game server module.
+
+This module implements a multiplayer text-based adventure game server.
+Players can move around a 10x10 grid, encounter monsters, fight them,
+and communicate with other players.
+
+The server uses asyncio for handling multiple client connections
+and implements game mechanics including monster movement, combat,
+and player interactions.
 """
 
 import asyncio
@@ -15,7 +22,25 @@ game_field = [[None for _ in range(10)] for _ in range(10)]
 monsters = set()
 
 class MUD:
+    """Main game class representing a player's game session.
+
+    This class manages player state, including position, weapons,
+    and interactions with monsters. It also handles special
+    monster types like jgsbat.
+
+    Attributes:
+        player_position (tuple): Current (x, y) position of the player.
+        weapons (dict): Available weapons and their damage values.
+        username (str): Player's username.
+        jgsbat_func (function): Special function for jgsbat monster display.
+    """
+
     def __init__(self, username):
+        """Initialize a new player session.
+
+        Args:
+            username (str): The player's chosen username.
+        """
         self.player_position = (0, 0)
         self.weapons = {"sword": 10, "spear": 15, "axe": 20}
         self.username = username
@@ -28,6 +53,15 @@ class MUD:
             print(f"Ошибка загрузки монстра jgsbat: {e}")
 
     def move_player(self, d_x, d_y):
+        """Move the player to a new position.
+
+        Args:
+            d_x (int): Change in x-coordinate.
+            d_y (int): Change in y-coordinate.
+
+        Returns:
+            str: New position coordinates as a string.
+        """
         x, y = self.player_position
         x = (x + d_x) % 10
         y = (y + d_y) % 10
@@ -35,6 +69,15 @@ class MUD:
         return f"{x} {y}"
 
     def encounter(self, x, y):
+        """Handle player encounter with a monster.
+
+        Args:
+            x (int): X-coordinate of encounter.
+            y (int): Y-coordinate of encounter.
+
+        Returns:
+            str: Monster's greeting message or empty string if no monster.
+        """
         monster = game_field[x][y]
         if monster:
             name, hello, _ = monster
@@ -44,6 +87,15 @@ class MUD:
         return ''
 
     def moving(self, d_x, d_y):
+        """Process player movement and check for encounters.
+
+        Args:
+            d_x (int): Change in x-coordinate.
+            d_y (int): Change in y-coordinate.
+
+        Returns:
+            str: Movement result and any encounter messages.
+        """
         new_position = self.move_player(d_x, d_y)
         encounter_message = self.encounter(self.player_position[0], self.player_position[1])
         if encounter_message:
@@ -51,6 +103,18 @@ class MUD:
         return f"Moved to ({new_position})"
 
     def add_monster(self, x, y, hp, hello, name):
+        """Add a new monster to the game field.
+
+        Args:
+            x (int): X-coordinate for monster placement.
+            y (int): Y-coordinate for monster placement.
+            hp (int): Monster's hit points.
+            hello (str): Monster's greeting message.
+            name (str): Monster's name.
+
+        Returns:
+            str: Status message indicating success or failure.
+        """
         if name not in cowsay.list_cows() and name != "jgsbat":
             return "cannot add unknown monster"
         if (x, y) == self.player_position:
@@ -62,6 +126,15 @@ class MUD:
         return "1" if old_mon else "0"
 
     def attack(self, weapon, name):
+        """Attack a monster with a weapon.
+
+        Args:
+            weapon (str): Name of the weapon to use.
+            name (str): Name of the monster to attack.
+
+        Returns:
+            str: Attack result including damage dealt and remaining HP.
+        """
         if name not in monsters:
             return f'no such monster {name}'
         x, y = self.player_position
@@ -79,35 +152,49 @@ class MUD:
         return f'{damage} {hp}'
 
 async def broadcast_message(message, exclude=None):
+    """Send a message to all connected clients.
+
+    Args:
+        message (str): Message to broadcast.
+        exclude (str, optional): Username to exclude from broadcast.
+    """
     for username, queue in clients.items():
         if username != exclude:
             await queue.put(message)
 
 async def move_random_monster():
+    """Periodically move random monsters around the game field.
+
+    This function runs every 30 seconds and:
+    1. Selects a random monster
+    2. Attempts to move it in a random direction
+    3. Broadcasts movement messages
+    4. Handles player encounters
+    """
     while True:
         await asyncio.sleep(30)  # Ждем 30 секунд
-
+        
         # Получаем список всех монстров и их позиций
         monster_positions = []
         for x in range(10):
             for y in range(10):
                 if game_field[x][y] is not None:
                     monster_positions.append((x, y, game_field[x][y]))
-
+        
         if not monster_positions:
             continue  # Если нет монстров, пропускаем итерацию
-
+        
         # Выбираем случайного монстра
         x, y, monster = random.choice(monster_positions)
         name, hello, hp = monster
-
+        
         # Пробуем переместить монстра, пока не найдем свободную клетку
         moved = False
         while not moved:
             # Выбираем случайное направление
             direction = random.choice(['right', 'left', 'up', 'down'])
             new_x, new_y = x, y
-
+            
             if direction == 'right':
                 new_x = (x + 1) % 10
             elif direction == 'left':
@@ -116,16 +203,17 @@ async def move_random_monster():
                 new_y = (y - 1) % 10
             elif direction == 'down':
                 new_y = (y + 1) % 10
-
+            
             # Проверяем, свободна ли клетка
             if game_field[new_x][new_y] is None:
                 # Перемещаем монстра
                 game_field[new_x][new_y] = monster
                 game_field[x][y] = None
-
+                
                 # Отправляем сообщение о перемещении всем игрокам
                 await broadcast_message(f"{name} moved one cell {direction}")
-
+                
+                # Проверяем, не попал ли монстр на клетку с игроком
                 for username, game in games.items():
                     if game.player_position == (new_x, new_y):
                         encounter_message = game.encounter(new_x, new_y)
@@ -135,6 +223,15 @@ async def move_random_monster():
                 moved = True
 
 async def handle_client(reader, writer):
+    """Handle individual client connections.
+
+    This function manages the lifecycle of a client connection,
+    including authentication, command processing, and cleanup.
+
+    Args:
+        reader (StreamReader): Client's input stream.
+        writer (StreamWriter): Client's output stream.
+    """
     username = (await reader.readline()).decode().strip()
 
     if username in clients:
@@ -281,6 +378,12 @@ async def handle_client(reader, writer):
         print(f"{username} disconnected")
 
 async def send_messages(writer, username):
+    """Send queued messages to a specific client.
+
+    Args:
+        writer (StreamWriter): Client's output stream.
+        username (str): Client's username.
+    """
     try:
         while True:
             message = await clients[username].get()
@@ -290,6 +393,11 @@ async def send_messages(writer, username):
         pass
 
 async def main():
+    """Start the MUD game server.
+
+    This function initializes the server and starts the monster
+    movement task before beginning to accept client connections.
+    """
     server = await asyncio.start_server(handle_client, '0.0.0.0', 1337)
     
     # Запускаем задачу перемещения монстров
@@ -299,4 +407,4 @@ async def main():
         await server.serve_forever()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main()) 
