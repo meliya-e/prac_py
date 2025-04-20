@@ -20,6 +20,7 @@ games = {}    # Словарь для хранения игровых сесси
 # Глобальные переменные для хранения общего состояния игры
 game_field = [[None for _ in range(10)] for _ in range(10)]
 monsters = set()
+wandering_monsters_enabled = True  # Флаг включения/выключения бродячих монстров
 
 class MUD:
     """Main game class representing a player's game session.
@@ -162,6 +163,7 @@ async def broadcast_message(message, exclude=None):
         if username != exclude:
             await queue.put(message)
 
+
 async def move_random_monster():
     """Periodically move random monsters around the game field.
 
@@ -173,6 +175,9 @@ async def move_random_monster():
     """
     while True:
         await asyncio.sleep(30)  # Ждем 30 секунд
+        
+        if not wandering_monsters_enabled:
+            continue  # Пропускаем итерацию, если режим выключен
         
         # Получаем список всех монстров и их позиций
         monster_positions = []
@@ -267,7 +272,16 @@ async def handle_client(reader, writer):
             cmd = parts[0]
             game = games[username]
 
-            if cmd == "addmon":
+            if cmd == "movemonsters":
+                if len(parts) != 2 or parts[1] not in ["on", "off"]:
+                    await clients[username].put("Invalid arguments")
+                    continue
+                
+                global wandering_monsters_enabled
+                wandering_monsters_enabled = (parts[1] == "on")
+                await broadcast_message(f"Moving monsters: {'on' if wandering_monsters_enabled else 'off'}")
+
+            elif cmd == "addmon":
                 try:
                     name, x, y, hp = parts[1:5]
                     hello = ' '.join(parts[5:])
@@ -407,4 +421,4 @@ async def main():
         await server.serve_forever()
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())

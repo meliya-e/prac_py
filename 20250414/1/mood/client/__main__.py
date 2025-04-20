@@ -258,7 +258,6 @@ class Client_MUD(cmd.Cmd):
 
     def do_sayall(self, args):
         """Send a message to all players.
-
         Usage: sayall <message> or sayall "message with spaces"
         """
         if not args:
@@ -266,6 +265,19 @@ class Client_MUD(cmd.Cmd):
             return
         try:
             self.s.sendall(f"sayall {args}\n".encode())
+        except ConnectionError:
+            print("\nConnection lost. Exiting...")
+            return True
+
+    def do_movemonsters(self, args):
+        """Enable or disable wandering monsters mode.
+        Usage: movemonsters on/off
+        """
+        if args not in ["on", "off"]:
+            print("Invalid arguments. Use 'on' or 'off'")
+            return
+        try:
+            self.s.sendall(f"movemonsters {args}\n".encode())
         except ConnectionError:
             print("\nConnection lost. Exiting...")
             return True
@@ -420,4 +432,4 @@ def main():
             input_file.close()
 
 if __name__ == '__main__':
-    main() 
+    main()
