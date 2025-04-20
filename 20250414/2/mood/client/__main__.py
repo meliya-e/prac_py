@@ -282,6 +282,21 @@ class Client_MUD(cmd.Cmd):
             print("\nConnection lost. Exiting...")
             return True
 
+    def do_locale(self, args):
+        """Set the locale for message localization.
+
+        Usage: locale <locale_name>
+        Example: locale ru_RU.UTF8
+        """
+        if not args:
+            print("Invalid arguments. Please specify locale name")
+            return
+        try:
+            self.s.sendall(f"locale {args}\n".encode())
+        except ConnectionError:
+            print("\nConnection lost. Exiting...")
+            return True
+
     def default(self, args):
         """Handle unknown commands.
 
