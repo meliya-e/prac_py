@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-04-22 17:31+0300\n"
+"POT-Creation-Date: 2025-04-24 14:20+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,111 +17,71 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.17.0\n"
 
-#: mood/server/__main__.py:269
-msgid "Welcome to MUD!\n"
-msgstr ""
-
-#: mood/server/__main__.py:273
+#: mood/server/__main__.py:262
 #, python-brace-format
-msgid "{username} has joined the game"
-msgstr ""
+msgid "{n} очко здоровья"
+msgid_plural "{n} очков здоровья"
+msgstr[0] ""
+msgstr[1] ""
 
-#: mood/server/__main__.py:294 mood/server/__main__.py:306
-#: mood/server/__main__.py:326 mood/server/__main__.py:342
-#: mood/server/__main__.py:380 mood/server/__main__.py:394
-#: mood/server/__main__.py:398 mood/server/__main__.py:404
-#: mood/server/__main__.py:412
+#: mood/server/__main__.py:269
+#, python-brace-format
+msgid "{n} урон"
+msgid_plural "{n} урона"
+msgstr[0] ""
+msgstr[1] ""
+
+#: mood/server/__main__.py:326 mood/server/__main__.py:338
+#: mood/server/__main__.py:358 mood/server/__main__.py:370
+#: mood/server/__main__.py:402 mood/server/__main__.py:416
+#: mood/server/__main__.py:420
 msgid "Invalid arguments"
 msgstr ""
 
-#: mood/server/__main__.py:300
+#: mood/server/__main__.py:332
 #, python-brace-format
 msgid "Set up locale: {args}"
 msgstr ""
 
-#: mood/server/__main__.py:302
+#: mood/server/__main__.py:334
 msgid "Unsupported locale"
 msgstr ""
 
-#: mood/server/__main__.py:311
-#, python-brace-format
-msgid "Moving monsters: {args}"
-msgstr ""
-
-#: mood/server/__main__.py:320
+#: mood/server/__main__.py:352
 msgid "Cannot add unknown monster"
 msgstr ""
 
-#: mood/server/__main__.py:323
+#: mood/server/__main__.py:355
 msgid "Cannot add monster to player's position"
 msgstr ""
 
-#: mood/server/__main__.py:334
-#, python-brace-format
-msgid "{username} added monster {name} to ({x}, {y}) with {hp} hp"
-msgid_plural "{username} added monster {name} to ({x}, {y}) with {hp} hp"
-msgstr[0] ""
-msgstr[1] ""
-
-#: mood/server/__main__.py:339
-msgid "Replaced the old monster"
-msgstr ""
-
-#: mood/server/__main__.py:348
+#: mood/server/__main__.py:376
 msgid "Unknown weapon"
 msgstr ""
 
-#: mood/server/__main__.py:351
+#: mood/server/__main__.py:379
 #, python-brace-format
 msgid "No such monster {name}"
 msgstr ""
 
-#: mood/server/__main__.py:357
+#: mood/server/__main__.py:385
 #, python-brace-format
 msgid "No {name} here"
 msgstr ""
 
-#: mood/server/__main__.py:368
-#, python-brace-format
-msgid "{username} attacked {name} with {weapon} for {damage} hp, {name} died"
-msgid_plural "{username} attacked {name} with {weapon} for {damage} hp, {name} died"
-msgstr[0] ""
-msgstr[1] ""
-
-#: mood/server/__main__.py:375
-#, python-brace-format
-msgid ""
-"{username} attacked {name} with {weapon} for {damage} hp, {name} has {hp}"
-" hp left"
-msgid_plural ""
-"{username} attacked {name} with {weapon} for {damage} hp, {name} has {hp}"
-" hp left"
-msgstr[0] ""
-msgstr[1] ""
-
-#: mood/server/__main__.py:388
+#: mood/server/__main__.py:410
 #, python-brace-format
 msgid ""
 "Moved to ({new_position})\n"
 "{encounter_message}"
 msgstr ""
 
-#: mood/server/__main__.py:392
+#: mood/server/__main__.py:413
 #, python-brace-format
 msgid "Moved to ({new_position})"
 msgstr ""
 
-#: mood/server/__main__.py:408
-#, python-brace-format
-msgid "{username}: {message}"
-msgstr ""
-
-#: mood/server/__main__.py:415
+#: mood/server/__main__.py:426
 msgid "Unknown command"
-msgstr ""
-
-#: mood/server/__main__.py:433
-#, python-brace-format
-msgid "{username} has left the game"
 msgstr ""
 

@@ -172,7 +172,9 @@ async def broadcast_message(message, exclude=None, **kwargs):
             game = games[username]
             _ = translations[game.locale].gettext
             ngettext = translations[game.locale].ngettext
-            await queue.put(format_message(message, game.locale, **kwargs))
+            # Форматируем сообщение с учетом локали получателя
+            formatted_message = format_message(message, game.locale, **kwargs)
+            await queue.put(formatted_message)
 
 
 async def move_random_monster():
@@ -338,7 +340,7 @@ async def handle_client(reader, writer):
                 
                 global wandering_monsters_enabled
                 wandering_monsters_enabled = (parts[1] == "on")
-                await broadcast_message(_("Moving monsters: {args}"), args=parts[1])
+                await broadcast_message("Moving monsters: {args}", args=parts[1])
 
             elif cmd == "addmon":
                 try:
@@ -360,10 +362,10 @@ async def handle_client(reader, writer):
                     game_field[x][y] = (name, hello, hp)
                     monsters.add(name)
                     
-                    await broadcast_message(_("{username} added monster {name} to ({x}, {y}) with {hp}"), 
+                    await broadcast_message("{username} added monster {name} to ({x}, {y}) with {hp}", 
                                           username=username, name=name, x=x, y=y, hp=hp)
                     if old_mon:
-                        await broadcast_message(_("Replaced the old monster"))
+                        await broadcast_message("Replaced the old monster")
                 except (ValueError, IndexError):
                     await clients[username].put(format_message(_("Invalid arguments"), game.locale))
 
@@ -390,11 +392,11 @@ async def handle_client(reader, writer):
                     if hp <= 0:
                         game_field[x][y] = None
                         monsters.remove(name)
-                        await broadcast_message(_("{username} attacked {name} with {weapon} for {damage}, {name} died"), 
+                        await broadcast_message("{username} attacked {name} with {weapon} for {damage}, {name} died", 
                                               username=username, name=name, weapon=weapon, damage=damage)
                     else:
                         game_field[x][y] = (name, hello, hp)
-                        await broadcast_message(_("{username} attacked {name} with {weapon} for {damage}, {name} has {hp} left"), 
+                        await broadcast_message("{username} attacked {name} with {weapon} for {damage}, {name} has {hp} left", 
                                               username=username, name=name, weapon=weapon, damage=damage, hp=hp)
                 except (ValueError, IndexError):
                     await clients[username].put(format_message(_("Invalid arguments"), game.locale))
@@ -418,12 +420,12 @@ async def handle_client(reader, writer):
                     await clients[username].put(format_message(_("Invalid arguments"), game.locale))
                     continue
                 message = ' '.join(parts[1:])
-                await broadcast_message(_("{username}: {message}"), username=username, message=message)
+                await broadcast_message("{username}: {message}", username=username, message=message)
 
             else:
                 await clients[username].put(format_message(_("Unknown command"), game.locale))
 
-        await broadcast_message(_("{username} has left the game"), username=username, exclude=username)
+        await broadcast_message("{username} has left the game", username=username, exclude=username)
 
         writer.close()
         await writer.wait_closed()
