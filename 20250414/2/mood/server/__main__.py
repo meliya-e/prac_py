@@ -60,7 +60,7 @@ class MUD:
         self.jgsbat_func = None
         self.locale = DEFAULT_LOCALE
         try:
-            with open("jgsbat.cow", "r", encoding="utf-8"):
+            with open("jgsbat.cow", "r", encoding="utf-8") as f:
                 jgsbat_template = cowsay.read_dot_cow(f)
                 self.jgsbat_func = lambda msg: cowsay.cowsay(msg, cowfile=jgsbat_template)
         except Exception as e:
@@ -165,16 +165,14 @@ class MUD:
         game_field[x][y] = (name, hello, hp)
         return f'{damage} {hp}'
 
-async def broadcast_message(message, exclude=None):
-    """Send a message to all connected clients.
-
-    Args:
-        message (str): Message to broadcast.
-        exclude (str, optional): Username to exclude from broadcast.
-    """
+async def broadcast_message(message, exclude=None, **kwargs):
+    """Send a message to all connected clients."""
     for username, queue in clients.items():
         if username != exclude:
-            await queue.put(message)
+            game = games[username]
+            _ = translations[game.locale].gettext
+            ngettext = translations[game.locale].ngettext
+            await queue.put(format_message(message, game.locale, **kwargs))
 
 
 async def move_random_monster():
@@ -240,6 +238,38 @@ async def move_random_monster():
                 
                 moved = True
 
+def get_plural_form(n, locale):
+    """Get the correct plural form for a number based on locale."""
+    if locale == 'ru_RU.UTF8':
+        if n % 10 == 1 and n % 100 != 11:
+            return 0  # singular
+        elif 2 <= n % 10 <= 4 and (n % 100 < 10 or n % 100 >= 20):
+            return 1  # few
+        else:
+            return 2  # many
+    return 0  # English only has singular/plural
+
+def format_message(message, locale, **kwargs):
+    """Format a message with proper plural forms for the given locale."""
+    _ = translations[locale].gettext
+    ngettext = translations[locale].ngettext
+    
+    if 'hp' in kwargs:
+        hp = kwargs['hp']
+        if locale == 'ru_RU.UTF8':
+            kwargs['hp'] = ngettext("{n} очко здоровья", "{n} очков здоровья", hp).format(n=hp)
+        else:
+            kwargs['hp'] = f"{hp} hp"
+    
+    if 'damage' in kwargs:
+        damage = kwargs['damage']
+        if locale == 'ru_RU.UTF8':
+            kwargs['damage'] = ngettext("{n} урон", "{n} урона", damage).format(n=damage)
+        else:
+            kwargs['damage'] = f"{damage} damage"
+    
+    return _(message).format(**kwargs)
+
 async def handle_client(reader, writer):
     """Handle individual client connections.
 
@@ -266,7 +296,7 @@ async def handle_client(reader, writer):
     await writer.drain()
 
     # Отправляем сообщение о присоединении всем, кроме самого пользователя
-    await broadcast_message(f"{username} has joined the game", exclude=username)
+    await broadcast_message("{username} has joined the game", exclude=username, username=username)
     print(f"{username} connected")
 
     send_task = asyncio.create_task(send_messages(writer, username))
@@ -291,24 +321,24 @@ async def handle_client(reader, writer):
 
             if cmd == "locale":
                 if len(parts) != 2:
-                    await clients[username].put(_("Invalid arguments"))
+                    await clients[username].put(format_message(_("Invalid arguments"), game.locale))
                     continue
                 
                 new_locale = parts[1]
                 if new_locale in translations:
                     game.locale = new_locale
-                    await clients[username].put(_("Set up locale: {args}").format(args=new_locale))
+                    await clients[username].put(format_message(_("Set up locale: {args}"), game.locale, args=new_locale))
                 else:
-                    await clients[username].put(_("Unsupported locale"))
+                    await clients[username].put(format_message(_("Unsupported locale"), game.locale))
 
             elif cmd == "movemonsters":
                 if len(parts) != 2 or parts[1] not in ["on", "off"]:
-                    await clients[username].put(_("Invalid arguments"))
+                    await clients[username].put(format_message(_("Invalid arguments"), game.locale))
                     continue
                 
                 global wandering_monsters_enabled
                 wandering_monsters_enabled = (parts[1] == "on")
-                await broadcast_message(_("Moving monsters: {args}").format(args=parts[1]))
+                await broadcast_message(_("Moving monsters: {args}"), args=parts[1])
 
             elif cmd == "addmon":
                 try:
@@ -317,42 +347,40 @@ async def handle_client(reader, writer):
                     x, y, hp = map(int, [x, y, hp])
                     
                     if name not in cowsay.list_cows() and name != "jgsbat":
-                        await clients[username].put(_("Cannot add unknown monster"))
+                        await clients[username].put(format_message(_("Cannot add unknown monster"), game.locale))
                         continue
                     if (x, y) == game.player_position:
-                        await clients[username].put(_("Cannot add monster to player's position"))
+                        await clients[username].put(format_message(_("Cannot add monster to player's position"), game.locale))
                         continue
                     if x < 0 or x >= 10 or y < 0 or y >= 10 or hp <= 0:
-                        await clients[username].put(_("Invalid arguments"))
+                        await clients[username].put(format_message(_("Invalid arguments"), game.locale))
                         continue
 
                     old_mon = game_field[x][y] is not None
                     game_field[x][y] = (name, hello, hp)
                     monsters.add(name)
                     
-                    message = _("{username} added monster {name} to ({x}, {y}) with {hp} hp").format(
-                        username=username, name=name, x=x, y=y, hp=hp
-                    )
+                    await broadcast_message(_("{username} added monster {name} to ({x}, {y}) with {hp}"), 
+                                          username=username, name=name, x=x, y=y, hp=hp)
                     if old_mon:
-                        message += "\n" + _("Replaced the old monster")
-                    await broadcast_message(message)
+                        await broadcast_message(_("Replaced the old monster"))
                 except (ValueError, IndexError):
-                    await clients[username].put(_("Invalid arguments"))
+                    await clients[username].put(format_message(_("Invalid arguments"), game.locale))
 
             elif cmd == "attack":
                 try:
                     weapon, name = parts[1:3]
                     if weapon not in ["sword", "spear", "axe"]:
-                        await clients[username].put(_("Unknown weapon"))
+                        await clients[username].put(format_message(_("Unknown weapon"), game.locale))
                         continue
                     if name not in monsters:
-                        await clients[username].put(_("No such monster {name}").format(name=name))
+                        await clients[username].put(format_message(_("No such monster {name}"), game.locale, name=name))
                         continue
 
                     x, y = game.player_position
                     monster = game_field[x][y]
                     if not monster or monster[0] != name:
-                        await clients[username].put(_("No {name} here").format(name=name))
+                        await clients[username].put(format_message(_("No {name} here"), game.locale, name=name))
                         continue
 
                     name, hello, hp = monster
@@ -362,16 +390,14 @@ async def handle_client(reader, writer):
                     if hp <= 0:
                         game_field[x][y] = None
                         monsters.remove(name)
-                        await broadcast_message(_("{username} attacked {name} with {weapon} for {damage} hp, {name} died").format(
-                            username=username, name=name, weapon=weapon, damage=damage
-                        ))
+                        await broadcast_message(_("{username} attacked {name} with {weapon} for {damage}, {name} died"), 
+                                              username=username, name=name, weapon=weapon, damage=damage)
                     else:
                         game_field[x][y] = (name, hello, hp)
-                        await broadcast_message(_("{username} attacked {name} with {weapon} for {damage} hp, {name} has {hp} hp left").format(
-                            username=username, name=name, weapon=weapon, damage=damage, hp=hp
-                        ))
+                        await broadcast_message(_("{username} attacked {name} with {weapon} for {damage}, {name} has {hp} left"), 
+                                              username=username, name=name, weapon=weapon, damage=damage, hp=hp)
                 except (ValueError, IndexError):
-                    await clients[username].put(_("Invalid arguments"))
+                    await clients[username].put(format_message(_("Invalid arguments"), game.locale))
 
             elif cmd == "move":
                 try:
@@ -379,34 +405,29 @@ async def handle_client(reader, writer):
                     new_position = game.move_player(d_x, d_y)
                     encounter_message = game.encounter(game.player_position[0], game.player_position[1])
                     if encounter_message:
-                        await clients[username].put(_("Moved to ({new_position})\n{encounter_message}").format(
-                            new_position=new_position, encounter_message=encounter_message
-                        ))
+                        await clients[username].put(format_message(_("Moved to ({new_position})\n{encounter_message}"), game.locale,
+                                                                 new_position=new_position, encounter_message=encounter_message))
                     else:
-                        await clients[username].put(_("Moved to ({new_position})").format(new_position=new_position))
+                        await clients[username].put(format_message(_("Moved to ({new_position})"), game.locale,
+                                                                 new_position=new_position))
                 except (ValueError, IndexError):
-                    await clients[username].put(_("Invalid arguments"))
+                    await clients[username].put(format_message(_("Invalid arguments"), game.locale))
 
             elif cmd == "sayall":
-                if len(parts) < 2:
-                    await clients[username].put(_("Invalid arguments"))
+                if not parts[1:]:
+                    await clients[username].put(format_message(_("Invalid arguments"), game.locale))
                     continue
-                
-                try:
-                    parsed = shlex.split(message)
-                    if len(parsed) < 2:
-                        await clients[username].put(_("Invalid arguments"))
-                        continue
-                    
-                    msg_to_broadcast = ' '.join(parsed[1:])
-                    await broadcast_message(_("{username}: {message}").format(
-                        username=username, message=msg_to_broadcast
-                    ))
-                except ValueError:
-                    await clients[username].put(_("Invalid arguments"))
+                message = ' '.join(parts[1:])
+                await broadcast_message(_("{username}: {message}"), username=username, message=message)
 
             else:
-                await clients[username].put(_("Unknown command"))
+                await clients[username].put(format_message(_("Unknown command"), game.locale))
+
+        await broadcast_message(_("{username} has left the game"), username=username, exclude=username)
+
+        writer.close()
+        await writer.wait_closed()
+        print(f"{username} disconnected")
 
     except Exception as e:
         print(f"Error: {e}")
@@ -421,12 +442,6 @@ async def handle_client(reader, writer):
             del clients[username]
         if username in games:
             del games[username]
-
-        await broadcast_message(_("{username} has left the game").format(username=username), exclude=username)
-
-        writer.close()
-        await writer.wait_closed()
-        print(f"{username} disconnected")
 
 async def send_messages(writer, username):
     """Send queued messages to a specific client.
