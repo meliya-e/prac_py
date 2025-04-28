@@ -4,7 +4,6 @@ API
 
 API docs.
 
-
-.. automodule:: restcalend
+.. automodule:: restcalend.__main__
    :members:
    :private-members:

@@ -11,7 +11,7 @@ This is **not** documentation :).
 Code
 ----
 
-.. literalinclude:: ../restcalend.py
+.. literalinclude:: ../restcalend/__main__.py
 
 
 .. toctree::
@@ -24,4 +24,6 @@ Code
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-
+   
+   calend
+   API 

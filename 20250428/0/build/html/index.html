@@ -37,6 +37,21 @@
 <p>This is <strong>not</strong> documentation :).</p>
 <section id="code">
 <h2>Code<a class="headerlink" href="#code" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">calendar</span><span class="w"> </span><span class="kn">import</span> <span class="n">month</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mnth = int(sys.argv[1])</span>
+<span class="sd">year = int(sys.argv[2]) if len(sys.argv) &gt; 2 else 2025</span>
+
+<span class="sd">cal = month(year, mnth).split(&quot;\n&quot;)</span>
+<span class="sd">sep = &quot;&quot;.join(c if c == &quot; &quot; else &quot;=&quot; for c in cal[1])</span>
+<span class="sd">print(f&quot;.. table:: {cal[0]}\n\n   {sep}\n   {cal[1]}\n   {sep}&quot;)</span>
+<span class="sd">print(&quot;\n&quot;.join(&quot;     &quot; + line for line in cal[2:-1]))</span>
+<span class="sd">print(f&quot;    {sep}&quot;)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+</pre></div>
+</div>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="calend.html">Calend</a><ul class="simple">
@@ -46,6 +61,13 @@
 </div>
 <img alt="_images/python-logo.png" src="_images/python-logo.png" />
 <div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="calend.html">Calend</a><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="API.html">API</a></li>
+</ul>
 </div>
 </section>
 </section>
@@ -78,6 +100,11 @@
 <script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="calend.html">Calend</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="calend.html">Calend</a></li>
+<li class="toctree-l1"><a class="reference internal" href="API.html">API</a></li>
 </ul>
 
 <div class="relations">
