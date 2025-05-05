@@ -283,13 +283,11 @@ class Client_MUD(cmd.Cmd):
             return True
 
     def do_locale(self, args):
-        """Set the locale for message localization.
-
+        """Set the locale for messages.
         Usage: locale <locale_name>
-        Example: locale ru_RU.UTF8
         """
         if not args:
-            print("Invalid arguments. Please specify locale name")
+            print("Invalid arguments. Please specify a locale")
             return
         try:
             self.s.sendall(f"locale {args}\n".encode())

@@ -14,7 +14,7 @@
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="MOOD documentation" href="index.html" />
+    <link rel="prev" title="MOOD" href="index.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -89,6 +89,17 @@ monster types like jgsbat.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>function</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="server.__main__.MUD.locale">
+<span class="sig-name descname"><span class="pre">locale</span></span><a class="headerlink" href="#server.__main__.MUD.locale" title="Link to this definition">¶</a></dt>
+<dd><p>Player's preferred locale.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
@@ -200,16 +211,20 @@ monster types like jgsbat.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="server.__main__.broadcast_message">
-<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">server.__main__.</span></span><span class="sig-name descname"><span class="pre">broadcast_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.__main__.broadcast_message" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">server.__main__.</span></span><span class="sig-name descname"><span class="pre">broadcast_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.__main__.broadcast_message" title="Link to this definition">¶</a></dt>
 <dd><p>Send a message to all connected clients.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>message</strong> (<em>str</em>) -- Message to broadcast.</p></li>
-<li><p><strong>exclude</strong> (<em>str</em><em>, </em><em>optional</em>) -- Username to exclude from broadcast.</p></li>
-</ul>
-</dd>
-</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.__main__.format_message">
+<span class="sig-prename descclassname"><span class="pre">server.__main__.</span></span><span class="sig-name descname"><span class="pre">format_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">locale</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.__main__.format_message" title="Link to this definition">¶</a></dt>
+<dd><p>Format a message with proper plural forms for the given locale.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="server.__main__.get_plural_form">
+<span class="sig-prename descclassname"><span class="pre">server.__main__.</span></span><span class="sig-name descname"><span class="pre">get_plural_form</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">locale</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#server.__main__.get_plural_form" title="Link to this definition">¶</a></dt>
+<dd><p>Get the correct plural form for a number based on locale.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -261,6 +276,11 @@ movement task before beginning to accept client connections.</p>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="server.__main__.serve">
+<span class="sig-prename descclassname"><span class="pre">server.__main__.</span></span><span class="sig-name descname"><span class="pre">serve</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#server.__main__.serve" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </section>
 
 
@@ -289,15 +309,18 @@ movement task before beginning to accept client connections.</p>
     </div>
 </search>
 <script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
-<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<p class="caption" role="heading"><span class="caption-text">См. техническую документацию:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Server Main Module</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#server.__main__.MUD"><code class="docutils literal notranslate"><span class="pre">MUD</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#server.__main__.broadcast_message"><code class="docutils literal notranslate"><span class="pre">broadcast_message()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#server.__main__.format_message"><code class="docutils literal notranslate"><span class="pre">format_message()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#server.__main__.get_plural_form"><code class="docutils literal notranslate"><span class="pre">get_plural_form()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#server.__main__.handle_client"><code class="docutils literal notranslate"><span class="pre">handle_client()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#server.__main__.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#server.__main__.move_random_monster"><code class="docutils literal notranslate"><span class="pre">move_random_monster()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#server.__main__.send_messages"><code class="docutils literal notranslate"><span class="pre">send_messages()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#server.__main__.serve"><code class="docutils literal notranslate"><span class="pre">serve()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -306,7 +329,7 @@ movement task before beginning to accept client connections.</p>
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="index.html" title="previous chapter">MOOD documentation</a></li>
+      <li>Previous: <a href="index.html" title="previous chapter">MOOD</a></li>
   </ul></li>
 </ul>
 </div>

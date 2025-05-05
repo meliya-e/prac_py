@@ -13,25 +13,54 @@ import asyncio
 import cowsay
 import shlex
 import random
+import locale
 import gettext
 import os
 
-# Initialize translations
-translations = {
-    'ru_RU.UTF8': gettext.translation('mud', localedir='locale', languages=['ru_RU']),
-    'en_US.UTF8': gettext.NullTranslations()
-}
-
-# Default locale
-DEFAULT_LOCALE = 'en_US.UTF8'
-
 clients = {}  # Словарь для хранения подключенных пользователей
 games = {}    # Словарь для хранения игровых сессий
+client_locales = {}  # Словарь для хранения локалей клиентов
 
 # Глобальные переменные для хранения общего состояния игры
 game_field = [[None for _ in range(10)] for _ in range(10)]
 monsters = set()
 wandering_monsters_enabled = True  # Флаг включения/выключения бродячих монстров
+
+# Инициализация переводов
+LOCALES = {
+    ("ru_RU", "UTF-8"): gettext.translation("mud", "mood/locale", ["ru_RU.UTF-8"]),
+    ("en_US", "UTF-8"): gettext.NullTranslations()
+}
+
+def _(text, client_locale=None):
+    """Translate a message to the specified locale.
+    
+    Args:
+        text (str): Message to translate
+        client_locale (tuple, optional): Target locale tuple (language, encoding). If None, returns original message.
+        
+    Returns:
+        str: Translated message or original if translation not available
+    """
+    if not client_locale or client_locale not in LOCALES:
+        return text
+    return LOCALES[client_locale].gettext(text)
+
+def ngettext(singular, plural, n, client_locale=None):
+    """Translate a message with plural forms.
+    
+    Args:
+        singular (str): Singular form of the message
+        plural (str): Plural form of the message
+        n (int): Number to determine which form to use
+        client_locale (tuple, optional): Target locale tuple (language, encoding). If None, returns original message.
+        
+    Returns:
+        str: Translated message or original if translation not available
+    """
+    if not client_locale or client_locale not in LOCALES:
+        return singular if n == 1 else plural
+    return LOCALES[client_locale].ngettext(singular, plural, n)
 
 class MUD:
     """Main game class representing a player's game session.
@@ -45,7 +74,6 @@ class MUD:
         weapons (dict): Available weapons and their damage values.
         username (str): Player's username.
         jgsbat_func (function): Special function for jgsbat monster display.
-        locale (str): Player's preferred locale.
     """
 
     def __init__(self, username):
@@ -58,7 +86,6 @@ class MUD:
         self.weapons = {"sword": 10, "spear": 15, "axe": 20}
         self.username = username
         self.jgsbat_func = None
-        self.locale = DEFAULT_LOCALE
         try:
             with open("jgsbat.cow", "r", encoding="utf-8") as f:
                 jgsbat_template = cowsay.read_dot_cow(f)
@@ -165,17 +192,63 @@ class MUD:
         game_field[x][y] = (name, hello, hp)
         return f'{damage} {hp}'
 
+def answer(fun=None, client_locale=None, **kwargs):
+    """Format and translate messages based on function type.
+    
+    Args:
+        fun (str, optional): Function type (addmon, attack, etc.)
+        client_locale (tuple, optional): Target locale tuple (language, encoding)
+        **kwargs: Arguments for message formatting
+        
+    Returns:
+        str: Formatted and translated message
+    """
+    match fun:
+        case 'addmon':
+            replaced = '' if kwargs.get('state', 0) == 0 else _("Replaced the old monster", client_locale)
+            return _("{username} added monster {name} to ({x}, {y}) with {hp} {hp_text}\n", client_locale) + replaced
+        case 'attack':
+            if kwargs.get('state', 0) == 0:
+                return _("{username} attacked {name} with {weapon} for {damage} {hp_text}, {name} died", client_locale)
+            else:
+                return _("{username} attacked {name} with {weapon} for {damage} {damage_hp}, {name} has {hp} {hp_text} left", client_locale)
+        case 'join':
+            return _("{username} has joined the game", client_locale)
+        case 'leave':
+            return _("{username} has left the game", client_locale)
+        case 'movemonsters':
+            return _("Moving monsters: {status}", client_locale)
+        case 'sayall':
+            return _("{username}: {message}", client_locale)
+        case _:
+            return kwargs.get('message', '')
+
 async def broadcast_message(message, exclude=None, **kwargs):
-    """Send a message to all connected clients."""
+    """Send a message to all connected clients.
+
+    Args:
+        message (str): Message to broadcast (can be a format string).
+        exclude (str, optional): Username to exclude from broadcast.
+        **kwargs: Format arguments for the message.
+    """
     for username, queue in clients.items():
         if username != exclude:
-            game = games[username]
-            _ = translations[game.locale].gettext
-            ngettext = translations[game.locale].ngettext
-            # Форматируем сообщение с учетом локали получателя
-            formatted_message = format_message(message, game.locale, **kwargs)
+            # Создаем копию kwargs для текущего клиента
+            client_kwargs = kwargs.copy()
+            
+            # Если есть параметры для ngettext, переводим их с учетом локали получателя
+            if 'hp_text' in client_kwargs:
+                n = client_kwargs.get('hp', 0)
+                client_kwargs['hp_text'] = ngettext("hp", "hp", n, client_locales[username])
+            if 'damage_hp' in client_kwargs:
+                n = client_kwargs.get('damage', 0)
+                client_kwargs['damage_hp'] = ngettext("hp", "hp", n, client_locales[username])
+            
+            # Получаем переведенное сообщение для текущего клиента
+            translated_message = answer(message, client_locales[username], **client_kwargs)
+            # Форматируем сообщение с аргументами
+            formatted_message = translated_message.format(**client_kwargs)
             await queue.put(formatted_message)
-
 
 async def move_random_monster():
     """Periodically move random monsters around the game field.
@@ -229,7 +302,7 @@ async def move_random_monster():
                 game_field[x][y] = None
                 
                 # Отправляем сообщение о перемещении всем игрокам
-                await broadcast_message(f"{name} moved one cell {direction}")
+                await broadcast_message(f"{name} moved one cell {direction}", client_locales[new_x, new_y])
                 
                 # Проверяем, не попал ли монстр на клетку с игроком
                 for username, game in games.items():
@@ -239,38 +312,6 @@ async def move_random_monster():
                             await clients[username].put(encounter_message)
                 
                 moved = True
-
-def get_plural_form(n, locale):
-    """Get the correct plural form for a number based on locale."""
-    if locale == 'ru_RU.UTF8':
-        if n % 10 == 1 and n % 100 != 11:
-            return 0  # singular
-        elif 2 <= n % 10 <= 4 and (n % 100 < 10 or n % 100 >= 20):
-            return 1  # few
-        else:
-            return 2  # many
-    return 0  # English only has singular/plural
-
-def format_message(message, locale, **kwargs):
-    """Format a message with proper plural forms for the given locale."""
-    _ = translations[locale].gettext
-    ngettext = translations[locale].ngettext
-    
-    if 'hp' in kwargs:
-        hp = kwargs['hp']
-        if locale == 'ru_RU.UTF8':
-            kwargs['hp'] = ngettext("{n} очко здоровья", "{n} очков здоровья", hp).format(n=hp)
-        else:
-            kwargs['hp'] = f"{hp} hp"
-    
-    if 'damage' in kwargs:
-        damage = kwargs['damage']
-        if locale == 'ru_RU.UTF8':
-            kwargs['damage'] = ngettext("{n} урон", "{n} урона", damage).format(n=damage)
-        else:
-            kwargs['damage'] = f"{damage} damage"
-    
-    return _(message).format(**kwargs)
 
 async def handle_client(reader, writer):
     """Handle individual client connections.
@@ -293,12 +334,13 @@ async def handle_client(reader, writer):
 
     clients[username] = asyncio.Queue()
     games[username] = MUD(username)
+    client_locales[username] = ("en_US", "UTF-8")  # Default to English
 
     writer.write(b"Welcome to MUD!\n")
     await writer.drain()
 
     # Отправляем сообщение о присоединении всем, кроме самого пользователя
-    await broadcast_message("{username} has joined the game", exclude=username, username=username)
+    await broadcast_message('join', exclude=username, username=username)
     print(f"{username} connected")
 
     send_task = asyncio.create_task(send_messages(writer, username))
@@ -316,31 +358,34 @@ async def handle_client(reader, writer):
 
             cmd = parts[0]
             game = games[username]
-            
-            # Get translation functions for current locale
-            _ = translations[game.locale].gettext
-            ngettext = translations[game.locale].ngettext
 
             if cmd == "locale":
                 if len(parts) != 2:
-                    await clients[username].put(format_message(_("Invalid arguments"), game.locale))
+                    await clients[username].put("Invalid arguments")
                     continue
                 
-                new_locale = parts[1]
-                if new_locale in translations:
-                    game.locale = new_locale
-                    await clients[username].put(format_message(_("Set up locale: {args}"), game.locale, args=new_locale))
+                locale_str = parts[1]
+                if locale_str == "ru_RU.UTF-8":
+                    client_locales[username] = ("ru_RU", "UTF-8")
+                elif locale_str == "en_US.UTF-8":
+                    client_locales[username] = ("en_US", "UTF-8")
                 else:
-                    await clients[username].put(format_message(_("Unsupported locale"), game.locale))
+                    await clients[username].put(f"Unsupported locale: {locale_str}")
+                    continue
+                    
+                # Сначала переводим сообщение, потом форматируем
+                translated = _("Set up locale: {locale}", client_locales[username])
+                await clients[username].put(translated.format(locale=locale_str))
 
             elif cmd == "movemonsters":
                 if len(parts) != 2 or parts[1] not in ["on", "off"]:
-                    await clients[username].put(format_message(_("Invalid arguments"), game.locale))
+                    await clients[username].put("Invalid arguments")
                     continue
                 
                 global wandering_monsters_enabled
                 wandering_monsters_enabled = (parts[1] == "on")
-                await broadcast_message("Moving monsters: {args}", args=parts[1])
+                status = "on" if wandering_monsters_enabled else "off"
+                await broadcast_message('movemonsters', status=status)
 
             elif cmd == "addmon":
                 try:
@@ -349,40 +394,45 @@ async def handle_client(reader, writer):
                     x, y, hp = map(int, [x, y, hp])
                     
                     if name not in cowsay.list_cows() and name != "jgsbat":
-                        await clients[username].put(format_message(_("Cannot add unknown monster"), game.locale))
+                        await clients[username].put("cannot add unknown monster")
                         continue
                     if (x, y) == game.player_position:
-                        await clients[username].put(format_message(_("Cannot add monster to player's position"), game.locale))
+                        await clients[username].put("cannot add the monster in player's position")
                         continue
                     if x < 0 or x >= 10 or y < 0 or y >= 10 or hp <= 0:
-                        await clients[username].put(format_message(_("Invalid arguments"), game.locale))
+                        await clients[username].put("Invalid arguments")
                         continue
 
                     old_mon = game_field[x][y] is not None
                     game_field[x][y] = (name, hello, hp)
                     monsters.add(name)
                     
-                    await broadcast_message("{username} added monster {name} to ({x}, {y}) with {hp}", 
-                                          username=username, name=name, x=x, y=y, hp=hp)
-                    if old_mon:
-                        await broadcast_message("Replaced the old monster")
+                    await broadcast_message('addmon',
+                        username=username,
+                        name=name,
+                        x=x,
+                        y=y,
+                        hp=hp,
+                        hp_text=ngettext("hp", "hp", hp, client_locales[username]),
+                        state=1 if old_mon else 0
+                    )
                 except (ValueError, IndexError):
-                    await clients[username].put(format_message(_("Invalid arguments"), game.locale))
+                    await clients[username].put("Invalid arguments")
 
             elif cmd == "attack":
                 try:
                     weapon, name = parts[1:3]
                     if weapon not in ["sword", "spear", "axe"]:
-                        await clients[username].put(format_message(_("Unknown weapon"), game.locale))
+                        await clients[username].put("Unknown weapon")
                         continue
                     if name not in monsters:
-                        await clients[username].put(format_message(_("No such monster {name}"), game.locale, name=name))
+                        await clients[username].put(f"no such monster {name}")
                         continue
 
                     x, y = game.player_position
                     monster = game_field[x][y]
                     if not monster or monster[0] != name:
-                        await clients[username].put(format_message(_("No {name} here"), game.locale, name=name))
+                        await clients[username].put(f"no {name} here")
                         continue
 
                     name, hello, hp = monster
@@ -392,14 +442,28 @@ async def handle_client(reader, writer):
                     if hp <= 0:
                         game_field[x][y] = None
                         monsters.remove(name)
-                        await broadcast_message("{username} attacked {name} with {weapon} for {damage}, {name} died", 
-                                              username=username, name=name, weapon=weapon, damage=damage)
+                        await broadcast_message('attack',
+                            username=username,
+                            name=name,
+                            weapon=weapon,
+                            damage=damage,
+                            hp_text=ngettext("hp", "hp", damage, client_locales[username]),
+                            state=0
+                        )
                     else:
                         game_field[x][y] = (name, hello, hp)
-                        await broadcast_message("{username} attacked {name} with {weapon} for {damage}, {name} has {hp} left", 
-                                              username=username, name=name, weapon=weapon, damage=damage, hp=hp)
+                        await broadcast_message('attack',
+                            username=username,
+                            name=name,
+                            weapon=weapon,
+                            damage=damage,
+                            damage_hp=ngettext("hp", "hp", damage, client_locales[username]),
+                            hp=hp,
+                            hp_text=ngettext("hp", "hp", hp, client_locales[username]),
+                            state=1
+                        )
                 except (ValueError, IndexError):
-                    await clients[username].put(format_message(_("Invalid arguments"), game.locale))
+                    await clients[username].put("Invalid arguments")
 
             elif cmd == "move":
                 try:
@@ -407,29 +471,34 @@ async def handle_client(reader, writer):
                     new_position = game.move_player(d_x, d_y)
                     encounter_message = game.encounter(game.player_position[0], game.player_position[1])
                     if encounter_message:
-                        await clients[username].put(format_message(_("Moved to ({new_position})\n{encounter_message}"), game.locale,
-                                                                 new_position=new_position, encounter_message=encounter_message))
+                        await clients[username].put(f"Moved to ({new_position})\n{encounter_message}")
                     else:
-                        await clients[username].put(format_message(_("Moved to ({new_position})"), game.locale,
-                                                                 new_position=new_position))
+                        await clients[username].put(f"Moved to ({new_position})")
                 except (ValueError, IndexError):
-                    await clients[username].put(format_message(_("Invalid arguments"), game.locale))
+                    await clients[username].put("Invalid arguments")
 
             elif cmd == "sayall":
-                if not parts[1:]:
-                    await clients[username].put(format_message(_("Invalid arguments"), game.locale))
+                if len(parts) < 2:
+                    await clients[username].put("Invalid arguments")
                     continue
-                message = ' '.join(parts[1:])
-                await broadcast_message("{username}: {message}", username=username, message=message)
+                
+                try:
+                    # Используем shlex.split для корректной обработки строк в кавычках
+                    parsed = shlex.split(message)
+                    if len(parsed) < 2:
+                        await clients[username].put("Invalid arguments")
+                        continue
+                    
+                    # Берем все аргументы после команды как сообщение
+                    msg_to_broadcast = ' '.join(parsed[1:])
+                    # Сначала переводим сообщение, потом форматируем
+                    translated = _("{username}: {message}", client_locales[username])
+                    await broadcast_message('sayall', username=username, message=msg_to_broadcast)
+                except ValueError:
+                    await clients[username].put("Invalid arguments")
 
             else:
-                await clients[username].put(format_message(_("Unknown command"), game.locale))
-
-        await broadcast_message("{username} has left the game", username=username, exclude=username)
-
-        writer.close()
-        await writer.wait_closed()
-        print(f"{username} disconnected")
+                await clients[username].put("Unknown command")
 
     except Exception as e:
         print(f"Error: {e}")
@@ -444,6 +513,15 @@ async def handle_client(reader, writer):
             del clients[username]
         if username in games:
             del games[username]
+        if username in client_locales:
+            del client_locales[username]
+
+        # Сначала переводим сообщение, потом форматируем
+        await broadcast_message('leave', exclude=username, username=username)
+
+        writer.close()
+        await writer.wait_closed()
+        print(f"{username} disconnected")
 
 async def send_messages(writer, username):
     """Send queued messages to a specific client.
