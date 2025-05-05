@@ -23,7 +23,7 @@ client_locales = {}  # Словарь для хранения локалей к�
 
 # Глобальные переменные для хранения общего состояния игры
 game_field = [[None for _ in range(10)] for _ in range(10)]
-monsters = set()
+monsters = {}  # Словарь для хранения монстров: {(x, y): name}
 wandering_monsters_enabled = True  # Флаг включения/выключения бродячих монстров
 
 # Инициализация переводов
@@ -77,14 +77,14 @@ class MUD:
     """
 
     def __init__(self, username):
-        """Initialize a new player session.
+        """Initialize a new MUD game instance.
 
         Args:
-            username (str): The player's chosen username.
+            username (str): Player's username.
         """
+        self.username = username
         self.player_position = (0, 0)
         self.weapons = {"sword": 10, "spear": 15, "axe": 20}
-        self.username = username
         self.jgsbat_func = None
         try:
             with open("jgsbat.cow", "r", encoding="utf-8") as f:
@@ -101,13 +101,10 @@ class MUD:
             d_y (int): Change in y-coordinate.
 
         Returns:
-            str: New position coordinates as a string.
+            tuple: New player position (x, y).
         """
-        x, y = self.player_position
-        x = (x + d_x) % 10
-        y = (y + d_y) % 10
-        self.player_position = (x, y)
-        return f"{x} {y}"
+        self.player_position = ((self.player_position[0] + d_x) % 10, (self.player_position[1] + d_y) % 10)
+        return self.player_position
 
     def encounter(self, x, y):
         """Handle player encounter with a monster.
@@ -138,10 +135,10 @@ class MUD:
             str: Movement result and any encounter messages.
         """
         new_position = self.move_player(d_x, d_y)
-        encounter_message = self.encounter(self.player_position[0], self.player_position[1])
+        encounter_message = self.encounter(new_position[0], new_position[1])
         if encounter_message:
-            return f"Moved to ({new_position})\n{encounter_message}"
-        return f"Moved to ({new_position})"
+            return f"Moved to ({new_position[0]}, {new_position[1]})\n{encounter_message}"
+        return f"Moved to ({new_position[0]}, {new_position[1]})"
 
     def add_monster(self, x, y, hp, hello, name):
         """Add a new monster to the game field.
@@ -163,7 +160,7 @@ class MUD:
 
         old_mon = game_field[x][y] is not None
         game_field[x][y] = (name, hello, hp)
-        monsters.add(name)
+        monsters[(x, y)] = name
         return "1" if old_mon else "0"
 
     def attack(self, weapon, name):
@@ -176,8 +173,6 @@ class MUD:
         Returns:
             str: Attack result including damage dealt and remaining HP.
         """
-        if name not in monsters:
-            return f'no such monster {name}'
         x, y = self.player_position
         monster = game_field[x][y]
         if not monster or monster[0] != name:
@@ -187,7 +182,7 @@ class MUD:
         hp -= damage
         if hp <= 0:
             game_field[x][y] = None
-            monsters.remove(name)
+            del monsters[(x, y)]
             return f'{damage} 0'
         game_field[x][y] = (name, hello, hp)
         return f'{damage} {hp}'
@@ -300,9 +295,12 @@ async def move_random_monster():
                 # Перемещаем монстра
                 game_field[new_x][new_y] = monster
                 game_field[x][y] = None
+                # Обновляем позицию монстра в словаре
+                del monsters[(x, y)]
+                monsters[(new_x, new_y)] = name
                 
                 # Отправляем сообщение о перемещении всем игрокам
-                await broadcast_message(f"{name} moved one cell {direction}", client_locales[new_x, new_y])
+                await broadcast_message(f"{name} moved one cell {direction}")
                 
                 # Проверяем, не попал ли монстр на клетку с игроком
                 for username, game in games.items():
@@ -405,7 +403,7 @@ async def handle_client(reader, writer):
 
                     old_mon = game_field[x][y] is not None
                     game_field[x][y] = (name, hello, hp)
-                    monsters.add(name)
+                    monsters[(x, y)] = name
                     
                     await broadcast_message('addmon',
                         username=username,
@@ -425,9 +423,6 @@ async def handle_client(reader, writer):
                     if weapon not in ["sword", "spear", "axe"]:
                         await clients[username].put("Unknown weapon")
                         continue
-                    if name not in monsters:
-                        await clients[username].put(f"no such monster {name}")
-                        continue
 
                     x, y = game.player_position
                     monster = game_field[x][y]
@@ -441,7 +436,7 @@ async def handle_client(reader, writer):
                     
                     if hp <= 0:
                         game_field[x][y] = None
-                        monsters.remove(name)
+                        del monsters[(x, y)]
                         await broadcast_message('attack',
                             username=username,
                             name=name,
@@ -469,11 +464,11 @@ async def handle_client(reader, writer):
                 try:
                     d_x, d_y = map(int, parts[1:3])
                     new_position = game.move_player(d_x, d_y)
-                    encounter_message = game.encounter(game.player_position[0], game.player_position[1])
+                    encounter_message = game.encounter(new_position[0], new_position[1])
                     if encounter_message:
-                        await clients[username].put(f"Moved to ({new_position})\n{encounter_message}")
+                        await clients[username].put(f"Moved to ({new_position[0]}, {new_position[1]})\n{encounter_message}")
                     else:
-                        await clients[username].put(f"Moved to ({new_position})")
+                        await clients[username].put(f"Moved to ({new_position[0]}, {new_position[1]})")
                 except (ValueError, IndexError):
                     await clients[username].put("Invalid arguments")
 
