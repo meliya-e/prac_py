@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-05-26 01:30+0300\n"
+"POT-Creation-Date: 2025-05-26 08:38+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -50,30 +50,35 @@ msgstr ""
 msgid "{username} has left the game"
 msgstr ""
 
-#: mood/server/__main__.py:215
+#: mood/server/__main__.py:216
 #, python-brace-format
 msgid "{monster} moved one cell {direction}"
 msgstr ""
 
-#: mood/server/__main__.py:217
+#: mood/server/__main__.py:218 mood/server/__main__.py:365
+#, python-brace-format
+msgid "Moving monsters: {status}"
+msgstr ""
+
+#: mood/server/__main__.py:220
 #, python-brace-format
 msgid "{username}: {msg}"
 msgstr ""
 
-#: mood/server/__main__.py:237 mood/server/__main__.py:240
-#: mood/server/__main__.py:387 mood/server/__main__.py:418
-#: mood/server/__main__.py:428 mood/server/__main__.py:430
+#: mood/server/__main__.py:240 mood/server/__main__.py:243
+#: mood/server/__main__.py:393 mood/server/__main__.py:424
+#: mood/server/__main__.py:434 mood/server/__main__.py:436
 msgid "hp"
 msgid_plural "hp"
 msgstr[0] ""
 msgstr[1] ""
 
-#: mood/server/__main__.py:348
+#: mood/server/__main__.py:351
 #, python-brace-format
 msgid "Set up locale: {locale}"
 msgstr ""
 
-#: mood/server/__main__.py:463
+#: mood/server/__main__.py:469
 #, python-brace-format
 msgid "{username}: {message}"
 msgstr ""

@@ -359,9 +359,9 @@ async def handle_client(reader, writer):
                 global wandering_monsters_enabled
                 wandering_monsters_enabled = (parts[1] == "on")
                 status = "on" if wandering_monsters_enabled else "off"
-                # Отправляем сообщение всем клиентам, включая отправителя
-                await broadcast_message('movemonsters', status=status)
-                # Отправляем подтверждение отправителю
+                # Отправляем сообщение всем клиентам, кроме отправителя
+                await broadcast_message('movemonsters', exclude=username, status=status)
+                # Отправляем подтверждение только отправителю
                 await clients[username].put(_("Moving monsters: {status}", client_locales[username]).format(status=status))
 
             elif cmd == "addmon":

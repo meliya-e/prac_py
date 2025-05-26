@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-05-26 01:30+0300\n"
+"POT-Creation-Date: 2025-05-26 08:38+0300\n"
 "PO-Revision-Date: 2025-05-05 11:25+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ru_RU\n"
@@ -56,31 +56,36 @@ msgstr "{username} присоединился к игре"
 msgid "{username} has left the game"
 msgstr "{username} покинул игру"
 
-#: mood/server/__main__.py:215
+#: mood/server/__main__.py:216
 #, python-brace-format
 msgid "{monster} moved one cell {direction}"
 msgstr ""
 
-#: mood/server/__main__.py:217
+#: mood/server/__main__.py:218 mood/server/__main__.py:365
+#, python-brace-format
+msgid "Moving monsters: {status}"
+msgstr ""
+
+#: mood/server/__main__.py:220
 #, fuzzy, python-brace-format
 msgid "{username}: {msg}"
 msgstr "{username}: {message}"
 
-#: mood/server/__main__.py:237 mood/server/__main__.py:240
-#: mood/server/__main__.py:387 mood/server/__main__.py:418
-#: mood/server/__main__.py:428 mood/server/__main__.py:430
+#: mood/server/__main__.py:240 mood/server/__main__.py:243
+#: mood/server/__main__.py:393 mood/server/__main__.py:424
+#: mood/server/__main__.py:434 mood/server/__main__.py:436
 msgid "hp"
 msgid_plural "hp"
 msgstr[0] "очко здоровья"
 msgstr[1] "очка здоровья"
 msgstr[2] "очков здоровья"
 
-#: mood/server/__main__.py:348
+#: mood/server/__main__.py:351
 #, python-brace-format
 msgid "Set up locale: {locale}"
 msgstr "Установлена локаль: {locale}"
 
-#: mood/server/__main__.py:463
+#: mood/server/__main__.py:469
 #, python-brace-format
 msgid "{username}: {message}"
 msgstr "{username}: {message}"

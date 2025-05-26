@@ -212,7 +212,10 @@ def answer(fun=None, client_locale=None, **kwargs):
         case 'leave':
             return _("{username} has left the game", client_locale)
         case 'movemonsters':
-            return _("{monster} moved one cell {direction}", client_locale)
+            if 'monster' in kwargs:
+                return _("{monster} moved one cell {direction}", client_locale)
+            else:
+                return _("Moving monsters: {status}", client_locale)
         case 'sayall':
             return _("{username}: {msg}", client_locale)
         case _:
@@ -356,7 +359,10 @@ async def handle_client(reader, writer):
                 global wandering_monsters_enabled
                 wandering_monsters_enabled = (parts[1] == "on")
                 status = "on" if wandering_monsters_enabled else "off"
-                await broadcast_message('movemonsters', status=status)
+                # Отправляем сообщение всем клиентам, кроме отправителя
+                await broadcast_message('movemonsters', exclude=username, status=status)
+                # Отправляем подтверждение только отправителю
+                await clients[username].put(_("Moving monsters: {status}", client_locales[username]).format(status=status))
 
             elif cmd == "addmon":
                 try:
